@@ -4,7 +4,9 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 
+st_autorefresh(interval=300000, key="refresh")
 from config import config
 import subprocess
 import sys
