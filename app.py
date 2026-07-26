@@ -8,7 +8,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 
 from config import config
-
+from streamlit_autorefresh import st_autorefresh
 
 def check_package(package_name: str) -> str:
     """
