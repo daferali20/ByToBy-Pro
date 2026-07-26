@@ -14,6 +14,7 @@ if str(project_root) not in sys.path:
 
 import streamlit as st
 import pandas as pd
+import numpy as np  # ⚠️ أضف هذا السطر
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -190,6 +191,18 @@ class Dashboard:
                 )
             )
         
+        if len(history) > 50:
+            ma50 = history['Close'].rolling(window=50).mean()
+            fig.add_trace(
+                go.Scatter(
+                    x=history['Date'],
+                    y=ma50,
+                    mode="lines",
+                    name="MA 50",
+                    line=dict(color="#1E88E5", width=1.5, dash="dot")
+                )
+            )
+        
         company_name = self.data.get('company', {}).get('companyName', self.symbol)
         
         fig.update_layout(
@@ -354,6 +367,18 @@ class Dashboard:
             fig = self.create_price_chart(period="1mo", chart_type="line")
             fig.update_layout(height=350)
             st.plotly_chart(fig, use_container_width=True)
+            
+            # Show additional metrics
+            col1, col2 = st.columns(2)
+            with col1:
+                if self.data and not pd.DataFrame(self.data.get('history', [])).empty:
+                    history = pd.DataFrame(self.data.get('history', []))
+                    st.metric("أعلى سعر خلال الفترة", f"${history['High'].max():.2f}")
+                    st.metric("أدنى سعر خلال الفترة", f"${history['Low'].min():.2f}")
+            
+            with col2:
+                if self.data:
+                    st.metric("آخر تحديث", self.data.get('last_updated', 'N/A')[:19])
         
         with tabs[1]:
             self.render_chart()
@@ -395,11 +420,17 @@ class Dashboard:
             
             st.markdown("---")
             
-            if st.button("🔄 تحديث", use_container_width=True):
+            if st.button("🔄 تحديث البيانات", use_container_width=True):
                 st.cache_data.clear()
                 st.rerun()
             
             st.info("ℹ️ يتم تحديث البيانات تلقائياً")
+            
+            # Display API status
+            if API_AVAILABLE:
+                st.success("✅ API متصلة")
+            else:
+                st.warning("⚠️ وضع التجربة - بيانات وهمية")
 
 
 # =====================================================
