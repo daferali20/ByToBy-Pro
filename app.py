@@ -6,12 +6,7 @@ from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 
 from config import config
-import sys
-print("Python version:", sys.version)
-print("Installed packages:")
-import pkg_resources
-for pkg in pkg_resources.working_set:
-    print(f"{pkg.key}=={pkg.version}")
+
 # =============================
 # Page Config
 # =============================
