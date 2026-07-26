@@ -6,7 +6,19 @@ from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 
 from config import config
+import subprocess
+import sys
 
+def check_package(package_name):
+    try:
+        __import__(package_name)
+        return f"✅ {package_name} installed"
+    except ImportError:
+        return f"❌ {package_name} NOT installed"
+
+# التحقق من المكتبات المهمة
+st.write(check_package("streamlit_option_menu"))
+st.write(check_package("streamlit_autorefresh"))
 # =============================
 # Page Config
 # =============================
