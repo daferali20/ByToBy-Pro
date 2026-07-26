@@ -3,6 +3,7 @@
 ByToBy Pro - API Package
 """
 
+# Import all functions
 from .yahoo_api import (
     YahooAPI,
     get_company_info,
@@ -14,6 +15,7 @@ from .yahoo_api import (
 )
 
 __version__ = "1.0.0"
+
 __all__ = [
     'YahooAPI',
     'get_company_info',
@@ -23,3 +25,6 @@ __all__ = [
     'get_portfolio_data',
     'validate_symbol'
 ]
+
+# Print status
+print(f"✅ ByToBy Pro API v{__version__} loaded")
