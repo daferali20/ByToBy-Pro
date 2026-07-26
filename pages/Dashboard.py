@@ -58,16 +58,6 @@ def main():
             if st.button(name, key=sym, use_container_width=True):
                 st.session_state['symbol'] = sym
                 st.rerun()
-        
-        st.markdown("---")
-        
-        # Show data source
-        if 'data_source' in st.session_state:
-            source = st.session_state['data_source']
-            if source == "yahoo":
-                st.success("✅ بيانات حقيقية من Yahoo Finance")
-            else:
-                st.warning("⚠️ بيانات تجريبية (لا يوجد اتصال بـ Yahoo)")
     
     # Initialize
     if 'symbol' not in st.session_state:
@@ -87,14 +77,11 @@ def main():
         price = data['price']
         history = pd.DataFrame(data.get('history', []))
         
-        # Store data source
-        st.session_state['data_source'] = data.get('source', 'unknown')
-        
-        # Show data source indicator
+        # Show data source
         if data.get('source') == 'yahoo':
             st.success("✅ عرض بيانات حقيقية من Yahoo Finance")
         else:
-            st.info("ℹ️ عرض بيانات تجريبية (تأكد من اتصال الإنترنت لرؤية البيانات الحقيقية)")
+            st.info("ℹ️ عرض بيانات تجريبية (تأكد من اتصال الإنترنت)")
         
         # Header
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -138,13 +125,11 @@ def main():
                     high=history['High'],
                     low=history['Low'],
                     close=history['Close'],
-                    name="السعر",
-                    increasing_line_color="#00C853",
-                    decreasing_line_color="#FF1744"
+                    name="السعر"
                 )
             )
             
-            # Add moving averages
+            # Moving averages
             if len(history) > 20:
                 ma20 = history['Close'].rolling(window=20).mean()
                 fig.add_trace(
@@ -163,8 +148,7 @@ def main():
                 yaxis_title="السعر ($)",
                 height=500,
                 template="plotly_dark",
-                xaxis_rangeslider_visible=False,
-                hovermode="x unified"
+                xaxis_rangeslider_visible=False
             )
             
             st.plotly_chart(fig, use_container_width=True)
@@ -184,17 +168,14 @@ def main():
                 st.markdown(f"[{company.get('website', 'N/A')}]({company.get('website', '#')})")
                 
                 st.markdown("**📊 معلومات إضافية**")
-                details = {
+                st.json({
                     "القطاع": company.get('sector'),
                     "الصناعة": company.get('industry'),
                     "الدولة": company.get('country'),
                     "القيمة السوقية": f"${company.get('marketCap', 0):.2f}B",
-                    "الموظفين": f"{company.get('employees', 0):,}"
-                }
-                for key, value in details.items():
-                    st.markdown(f"**{key}:** {value}")
+                    "الموظفين": company.get('employees', 0)
+                })
         
-        # Last updated
         st.caption(f"آخر تحديث: {data.get('last_updated', datetime.now().isoformat())[:19]}")
         
     except Exception as e:
