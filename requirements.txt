@@ -1,53 +1,9 @@
-# ByToBy Pro 2.0 Requirements
-
-# Core
 streamlit>=1.28.0
-streamlit-option-menu>=0.4.0
-streamlit-autorefresh>=1.0.1
-streamlit-aggrid>=1.1.0
-
-# Data
 pandas>=2.0.0
 numpy>=1.24.0
-pyarrow>=21.0.0
-
-# Financial Data
 yfinance>=0.2.65
-yahooquery>=2.4.1
-finnhub-python>=2.4.24
-alpha-vantage>=3.0.0
-
-# HTTP
-requests>=2.32.0
-httpx>=0.28.0
-aiohttp>=3.12.0
-
-# Technical Analysis
-pandas-ta>=0.3.14
-ta>=0.11.0
-
-# Charts
 plotly>=5.14.0
-mplfinance>=0.12.10
 matplotlib>=3.7.0
-
-# Machine Learning
 scikit-learn>=1.7.0
-joblib>=1.5.0
-xgboost>=3.0.0
-lightgbm>=4.6.0
-
-# Database
-sqlalchemy>=2.0.0
-
-# Utilities
+requests>=2.32.0
 python-dotenv>=1.1.0
-loguru>=0.7.0
-schedule>=1.2.0
-openpyxl>=3.1.0
-beautifulsoup4>=4.13.0
-lxml>=6.0.0
-diskcache>=5.6.0
-pydantic>=2.11.0
-numba>=0.61.0
-tqdm>=4.67.0
