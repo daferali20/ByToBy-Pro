@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-import streamlit as st
-from streamlit_option_menu import option_menu
-from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
-
-st_autorefresh(interval=300000, key="refresh")
-from config import config
 import subprocess
 import sys
 
-def check_package(package_name):
+import streamlit as st
+from streamlit_option_menu import option_menu
+
+from config import config
+
+
+def check_package(package_name: str) -> str:
+    """
+    التحقق من وجود مكتبة Python.
+    """
     try:
         __import__(package_name)
         return f"✅ {package_name} installed"
