@@ -170,4 +170,62 @@ class YahooAPI:
 
             return {}
 ```
+```python
+    # =====================================================
+    # Historical Data
+    # =====================================================
+
+    @timer
+    @cached(ttl=300)
+    def get_history(
+        self,
+        symbol: str,
+        period: str = "6mo",
+        interval: str = "1d"
+    ) -> pd.DataFrame:
+        """
+        جلب البيانات التاريخية للسهم.
+
+        Parameters
+        ----------
+        symbol : رمز السهم
+        period : الفترة (1d,5d,1mo,3mo,6mo,1y,2y,5y,max)
+        interval : الفاصل الزمني (1m,5m,15m,1h,1d,1wk)
+
+        Returns
+        -------
+        DataFrame
+        """
+
+        ticker = self._request(symbol)
+
+        if ticker is None:
+            return pd.DataFrame()
+
+        try:
+
+            df = ticker.history(
+                period=period,
+                interval=interval,
+                auto_adjust=True
+            )
+
+            if df.empty:
+                logger.warning(f"No history found for {symbol}")
+                return pd.DataFrame()
+
+            df.reset_index(inplace=True)
+
+            logger.info(
+                f"{symbol} history loaded ({len(df)} rows)"
+            )
+
+            return df
+
+        except Exception as e:
+
+            logger.exception(e)
+
+            return pd.DataFrame()
+```
 
