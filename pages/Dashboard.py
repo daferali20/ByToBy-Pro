@@ -1,37 +1,21 @@
-# محتوى الصفحة هنا
-# Dashboard.py
+# pages/Dashboard.py
 """
 ByToBy Pro - Dashboard Page
-====================================
-
-This module handles the Dashboard page functionality including:
-- Company overview with key metrics
-- Stock price chart with interactive controls
-- Company details and statistics
-- Real-time data updates
-- Responsive design for all screen sizes
-
-Usage:
-    from Dashboard import Dashboard
-    
-    # Initialize dashboard
-    dashboard = Dashboard()
-    
-    # Load company data
-    dashboard.load_company("2222.SR")
-    
-    # Get dashboard data
-    data = dashboard.get_dashboard_data()
-    
-    # Update price (real-time)
-    dashboard.update_price()
 """
 
 from __future__ import annotations
 
+import sys
+import os
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
@@ -41,7 +25,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 
-# Import API layer
+# Now import from api (project root)
 from api import (
     get_company_info,
     get_price,
@@ -50,13 +34,10 @@ from api import (
     YahooAPI
 )
 
-# Import utilities
 from utils.logger import get_logger
 from utils.cache import cached
 
-# Initialize logger
 logger = get_logger("Dashboard")
-
 
 # =====================================================
 # Data Classes
@@ -110,29 +91,13 @@ class DashboardData:
 class Dashboard:
     """
     Main Dashboard class for displaying company data.
-    
-    Features:
-    - Company profile with key metrics
-    - Interactive price chart
-    - Volume analysis
-    - Price alerts
-    - Real-time updates
     """
     
     def __init__(self, symbol: str = None):
-        """
-        Initialize Dashboard.
-        
-        Parameters
-        ----------
-        symbol : str, optional
-            Initial stock symbol to load
-        """
         self.symbol = symbol
         self.data: Optional[DashboardData] = None
         self.api = YahooAPI()
         
-        # Dashboard configuration
         self.config = {
             "chart_height": 500,
             "chart_colors": {
@@ -142,13 +107,12 @@ class Dashboard:
                 "positive": "#00C853",
                 "negative": "#FF1744"
             },
-            "update_interval": 30,  # seconds
+            "update_interval": 30,
             "max_history_days": 365,
             "default_period": "6mo",
             "default_interval": "1d"
         }
         
-        # Chart periods
         self.periods = {
             "1 يوم": "1d",
             "5 أيام": "5d",
@@ -161,7 +125,6 @@ class Dashboard:
             "الكل": "max"
         }
         
-        # Chart intervals
         self.intervals = {
             "دقيقة": "1m",
             "5 دقائق": "5m",
@@ -172,7 +135,6 @@ class Dashboard:
             "شهري": "1mo"
         }
         
-        # Load initial data if symbol provided
         if symbol:
             self.load_company(symbol)
         
@@ -184,26 +146,11 @@ class Dashboard:
     
     @cached(ttl=60)
     def load_company(self, symbol: str) -> bool:
-        """
-        Load company data for dashboard.
-        
-        Parameters
-        ----------
-        symbol : str
-            Stock symbol to load
-            
-        Returns
-        -------
-        bool
-            True if successful, False otherwise
-        """
+        """Load company data for dashboard."""
         try:
             self.symbol = symbol
-            
-            # Get dashboard data
             data = get_dashboard_data(symbol)
             
-            # Create DashboardData object
             self.data = DashboardData(
                 symbol=symbol,
                 company=data.get("company", {}),
@@ -223,14 +170,7 @@ class Dashboard:
     
     @cached(ttl=20)
     def update_price(self) -> bool:
-        """
-        Update only the price data (faster than full reload).
-        
-        Returns
-        -------
-        bool
-            True if successful, False otherwise
-        """
+        """Update only the price data."""
         if not self.symbol:
             return False
         
@@ -249,21 +189,7 @@ class Dashboard:
     
     @cached(ttl=300)
     def refresh_history(self, period: str = "6mo", interval: str = "1d") -> bool:
-        """
-        Refresh historical data with new period/interval.
-        
-        Parameters
-        ----------
-        period : str
-            Data period (1d, 5d, 1mo, etc.)
-        interval : str
-            Data interval (1m, 5m, 1d, etc.)
-            
-        Returns
-        -------
-        bool
-            True if successful, False otherwise
-        """
+        """Refresh historical data."""
         if not self.symbol:
             return False
         
@@ -273,7 +199,7 @@ class Dashboard:
                 self.data.history = history
                 self.data.last_updated = datetime.now().isoformat()
             
-            logger.info(f"History refreshed for {self.symbol} ({period}, {interval})")
+            logger.info(f"History refreshed for {self.symbol}")
             return True
             
         except Exception as e:
@@ -285,14 +211,7 @@ class Dashboard:
     # =====================================================
     
     def get_dashboard_data(self) -> Dict[str, Any]:
-        """
-        Get complete dashboard data.
-        
-        Returns
-        -------
-        Dict[str, Any]
-            Complete dashboard data
-        """
+        """Get complete dashboard data."""
         if not self.data:
             return {}
         
@@ -348,32 +267,12 @@ class Dashboard:
         chart_type: str = "candlestick",
         show_volume: bool = True
     ) -> go.Figure:
-        """
-        Create interactive price chart.
-        
-        Parameters
-        ----------
-        period : str
-            Data period
-        interval : str
-            Data interval
-        chart_type : str
-            Chart type: 'candlestick', 'line', 'area'
-        show_volume : bool
-            Show volume subplot
-            
-        Returns
-        -------
-        go.Figure
-            Plotly figure object
-        """
-        # Get data
+        """Create interactive price chart."""
         df = self.get_history_data()
         
         if df.empty:
             return self._create_empty_chart("لا توجد بيانات متاحة")
         
-        # Create figure with secondary y-axis
         if show_volume:
             fig = make_subplots(
                 rows=2,
@@ -386,7 +285,6 @@ class Dashboard:
         else:
             fig = go.Figure()
         
-        # Add price data
         if chart_type == "candlestick":
             fig.add_trace(
                 go.Candlestick(
@@ -418,7 +316,7 @@ class Dashboard:
                 row=1 if show_volume else None,
                 col=1 if show_volume else None
             )
-        else:  # area
+        else:
             fig.add_trace(
                 go.Scatter(
                     x=df["Date"],
@@ -438,7 +336,6 @@ class Dashboard:
         
         # Add moving averages
         if len(df) > 20:
-            # 20-day moving average
             ma20 = df["Close"].rolling(window=20).mean()
             fig.add_trace(
                 go.Scatter(
@@ -453,7 +350,6 @@ class Dashboard:
             )
         
         if len(df) > 50:
-            # 50-day moving average
             ma50 = df["Close"].rolling(window=50).mean()
             fig.add_trace(
                 go.Scatter(
@@ -467,9 +363,7 @@ class Dashboard:
                 col=1 if show_volume else None
             )
         
-        # Add volume
         if show_volume:
-            # Determine volume colors based on price movement
             colors = [
                 self.config["chart_colors"]["positive"] if close >= open 
                 else self.config["chart_colors"]["negative"]
@@ -488,7 +382,6 @@ class Dashboard:
                 col=1
             )
         
-        # Update layout
         fig.update_layout(
             title=f"{self.data.company.get('companyName', self.symbol)} - تحليل السعر",
             xaxis_title="التاريخ",
@@ -506,12 +399,10 @@ class Dashboard:
             margin=dict(l=50, r=50, t=50, b=50)
         )
         
-        # Update axes
         if show_volume:
             fig.update_xaxes(title_text="التاريخ", row=2, col=1)
             fig.update_yaxes(title_text="حجم التداول", row=2, col=1)
         
-        # Add range selector
         fig.update_xaxes(
             rangeslider_visible=False,
             rangeselector=dict(
@@ -527,59 +418,8 @@ class Dashboard:
         
         return fig
     
-    def create_metrics_chart(self) -> go.Figure:
-        """
-        Create metrics visualization chart.
-        
-        Returns
-        -------
-        go.Figure
-            Metrics gauge chart
-        """
-        metrics = self.get_key_metrics()
-        
-        fig = go.Figure()
-        
-        # Add gauge for price change
-        if self.data and not self.data.history.empty:
-            price_change = self.data.get_price_change()
-            
-            fig.add_trace(go.Indicator(
-                mode="gauge+number+delta",
-                value=price_change,
-                title={"text": "تغير السعر (%)"},
-                delta={"reference": 0},
-                gauge={
-                    "axis": {"range": [-20, 20]},
-                    "bar": {"color": (
-                        self.config["chart_colors"]["positive"] 
-                        if price_change >= 0 
-                        else self.config["chart_colors"]["negative"]
-                    )},
-                    "steps": [
-                        {"range": [-20, -5], "color": "rgba(255, 23, 68, 0.2)"},
-                        {"range": [-5, 5], "color": "rgba(255, 215, 0, 0.2)"},
-                        {"range": [5, 20], "color": "rgba(0, 200, 83, 0.2)"}
-                    ],
-                    "threshold": {
-                        "line": {"color": "red", "width": 4},
-                        "thickness": 0.75,
-                        "value": 0
-                    }
-                }
-            ))
-        
-        return fig
-    
     def create_volume_profile(self) -> go.Figure:
-        """
-        Create volume profile chart.
-        
-        Returns
-        -------
-        go.Figure
-            Volume profile figure
-        """
+        """Create volume profile chart."""
         df = self.get_history_data()
         
         if df.empty:
@@ -592,7 +432,6 @@ class Dashboard:
             specs=[[{"type": "bar"}, {"type": "histogram"}]]
         )
         
-        # Daily volume
         fig.add_trace(
             go.Bar(
                 x=df["Date"][-30:],
@@ -604,7 +443,6 @@ class Dashboard:
             col=1
         )
         
-        # Volume distribution
         fig.add_trace(
             go.Histogram(
                 x=df["Volume"],
@@ -620,53 +458,6 @@ class Dashboard:
             height=300,
             template="plotly_dark",
             showlegend=False,
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
-        
-        return fig
-    
-    def create_sector_chart(self, sectors: Dict[str, Any]) -> go.Figure:
-        """
-        Create sector allocation chart.
-        
-        Parameters
-        ----------
-        sectors : Dict[str, Any]
-            Sector data from portfolio
-            
-        Returns
-        -------
-        go.Figure
-            Sector chart
-        """
-        if not sectors:
-            return self._create_empty_chart("لا توجد بيانات قطاعات")
-        
-        # Prepare data
-        labels = list(sectors.keys())
-        values = [sectors[sector]["total_market_cap"] for sector in sectors]
-        
-        # Create donut chart
-        fig = go.Figure(data=[
-            go.Pie(
-                labels=labels,
-                values=values,
-                hole=0.4,
-                marker=dict(
-                    colors=[
-                        "#00B386", "#FF6B35", "#1E88E5", 
-                        "#FFD700", "#E91E63", "#9C27B0"
-                    ]
-                ),
-                textinfo="label+percent",
-                hoverinfo="label+value+percent"
-            )
-        ])
-        
-        fig.update_layout(
-            title="توزيع القطاعات",
-            height=400,
-            template="plotly_dark",
             margin=dict(l=40, r=40, t=40, b=40)
         )
         
@@ -694,14 +485,13 @@ class Dashboard:
     # =====================================================
     
     def render_company_header(self):
-        """Render company header with name, sector, and logo."""
+        """Render company header."""
         if not self.data:
             st.warning("⚠️ لم يتم تحميل بيانات الشركة")
             return
         
         company = self.data.company
         
-        # Main header
         col1, col2, col3 = st.columns([2, 1, 1])
         
         with col1:
@@ -734,7 +524,6 @@ class Dashboard:
         
         metrics = self.get_key_metrics()
         
-        # Create metrics grid
         cols = st.columns(4)
         
         metrics_items = [
@@ -757,26 +546,25 @@ class Dashboard:
                 )
     
     def render_price_chart(self):
-        """Render interactive price chart with controls."""
+        """Render interactive price chart."""
         if not self.data or self.data.history.empty:
             st.warning("📊 لا توجد بيانات تاريخية للعرض")
             return
         
-        # Chart controls
         col1, col2, col3 = st.columns([2, 2, 1])
         
         with col1:
             period = st.selectbox(
                 "الفترة الزمنية",
                 options=list(self.periods.keys()),
-                index=3  # 6 months default
+                index=3
             )
         
         with col2:
             interval = st.selectbox(
                 "الفاصل الزمني",
                 options=list(self.intervals.keys()),
-                index=3  # Daily default
+                index=3
             )
         
         with col3:
@@ -786,7 +574,6 @@ class Dashboard:
                 index=0
             )
         
-        # Refresh data if period/interval changed
         period_key = self.periods[period]
         interval_key = self.intervals[interval]
         
@@ -796,7 +583,6 @@ class Dashboard:
             self._last_period = period_key
             self._last_interval = interval_key
         
-        # Create and display chart
         fig = self.create_price_chart(
             period=period_key,
             interval=interval_key,
@@ -844,14 +630,12 @@ class Dashboard:
         with st.expander("💰 توزيعات الأرباح", expanded=False):
             df = self.data.dividends
             
-            # Show dividend history
             st.dataframe(
                 df.tail(10)[["Date", "Dividend"]],
                 use_container_width=True,
                 hide_index=True
             )
             
-            # Calculate dividend metrics
             total = df["Dividend"].sum()
             avg = df["Dividend"].mean()
             count = len(df)
@@ -898,7 +682,6 @@ class Dashboard:
             st.error("❌ فشل تحميل بيانات الشركة")
             return
         
-        # Create tabs
         tab1, tab2, tab3, tab4 = st.tabs([
             "📊 نظرة عامة",
             "📈 تحليل السعر",
@@ -912,12 +695,10 @@ class Dashboard:
             self.render_metrics()
             st.divider()
             
-            # Price chart with smaller height for overview
             fig = self.create_price_chart(period="1mo", interval="1d", chart_type="line")
             fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)
             
-            # Quick metrics
             col1, col2 = st.columns(2)
             with col1:
                 if not self.data.history.empty:
@@ -934,7 +715,6 @@ class Dashboard:
         with tab2:
             self.render_price_chart()
             
-            # Volume profile
             st.subheader("📊 تحليل الحجم")
             fig = self.create_volume_profile()
             st.plotly_chart(fig, use_container_width=True)
@@ -946,99 +726,6 @@ class Dashboard:
             self.render_dividends()
             st.divider()
             self.render_price_alert()
-    
-    # =====================================================
-    # Export Methods
-    # =====================================================
-    
-    def export_data(self, format: str = "json") -> str:
-        """
-        Export dashboard data.
-        
-        Parameters
-        ----------
-        format : str
-            Export format ('json', 'csv', 'excel')
-            
-        Returns
-        -------
-        str
-            Exported data
-        """
-        if not self.data:
-            return ""
-        
-        if format == "json":
-            return json.dumps(self.get_dashboard_data(), indent=2, default=str)
-        
-        elif format == "csv":
-            return self.data.history.to_csv()
-        
-        elif format == "excel":
-            # Would need to create Excel file
-            return "Excel export coming soon"
-        
-        return "Unsupported format"
-
-
-# =====================================================
-# Utility Functions
-# =====================================================
-
-def create_dashboard(symbol: str) -> Dashboard:
-    """
-    Create and initialize dashboard for a symbol.
-    
-    Parameters
-    ----------
-    symbol : str
-        Stock symbol
-        
-    Returns
-    -------
-    Dashboard
-        Dashboard instance
-    """
-    dashboard = Dashboard(symbol)
-    return dashboard
-
-
-def get_dashboard_html(symbol: str) -> str:
-    """
-    Get dashboard as HTML for embedding.
-    
-    Parameters
-    ----------
-    symbol : str
-        Stock symbol
-        
-    Returns
-    -------
-    str
-        HTML representation
-    """
-    dashboard = Dashboard(symbol)
-    if not dashboard.data:
-        return "<p>لم يتم تحميل البيانات</p>"
-    
-    # Create simple HTML representation
-    company = dashboard.data.company
-    price = dashboard.data.price
-    
-    html = f"""
-    <div style="font-family: Arial, sans-serif; padding: 20px; direction: rtl;">
-        <h2>{company.get('companyName', symbol)}</h2>
-        <p><strong>القطاع:</strong> {company.get('sector', 'N/A')}</p>
-        <p><strong>السعر الحالي:</strong> ${price.get('price', 0):.2f}</p>
-        <p><strong>القيمة السوقية:</strong> ${company.get('marketCap', 0):.2f}B</p>
-        <p><strong>عدد الموظفين:</strong> {company.get('employees', 0):,}</p>
-        <p><strong>الدولة:</strong> {company.get('country', 'N/A')}</p>
-        <p><strong>الموقع:</strong> <a href="{company.get('website', '#')}">{company.get('website', 'N/A')}</a></p>
-        <p><strong>الوصف:</strong> {company.get('description', 'N/A')[:200]}...</p>
-    </div>
-    """
-    
-    return html
 
 
 # =====================================================
@@ -1046,9 +733,7 @@ def get_dashboard_html(symbol: str) -> str:
 # =====================================================
 
 def demo():
-    """
-    Demo function to showcase Dashboard functionality.
-    """
+    """Demo function to showcase Dashboard functionality."""
     st.set_page_config(
         page_title="ByToBy Pro - Dashboard",
         page_icon="📊",
@@ -1056,14 +741,12 @@ def demo():
         initial_sidebar_state="expanded"
     )
     
-    # Sidebar
     with st.sidebar:
-        st.image("https://via.placeholder.com/200x80", caption="ByToBy Pro")
-        st.title("📊 Dashboard")
+        st.title("📊 ByToBy Pro")
+        st.markdown("---")
         
-        # Symbol input
         symbol = st.text_input(
-            "رمز السهم",
+            "🔍 رمز السهم",
             value="2222.SR",
             help="أدخل رمز السهم (مثال: 2222.SR, AAPL, TSLA)"
         )
@@ -1072,53 +755,35 @@ def demo():
             st.session_state['dashboard_symbol'] = symbol
             st.rerun()
         
-        st.divider()
-        
-        # Quick links
+        st.markdown("---")
         st.markdown("### 🔗 روابط سريعة")
+        
         quick_symbols = [
-            ("أرامكو", "2222.SR"),
-            ("الراجحي", "1120.SR"),
-            ("STC", "7010.SR"),
-            ("Apple", "AAPL"),
-            ("Tesla", "TSLA"),
-            ("Microsoft", "MSFT")
+            ("🏢 أرامكو", "2222.SR"),
+            ("🏦 الراجحي", "1120.SR"),
+            ("📡 STC", "7010.SR"),
+            ("🍎 Apple", "AAPL"),
+            ("🚗 Tesla", "TSLA"),
+            ("💻 Microsoft", "MSFT")
         ]
         
         for name, sym in quick_symbols:
-            if st.button(f"📌 {name}", key=sym):
+            if st.button(name, key=sym, use_container_width=True):
                 st.session_state['dashboard_symbol'] = sym
                 st.rerun()
+        
+        st.markdown("---")
+        if st.button("🔄 تحديث البيانات", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
     
-    # Main content
     if 'dashboard_symbol' not in st.session_state:
         st.session_state['dashboard_symbol'] = "2222.SR"
     
-    # Initialize dashboard
     dashboard = Dashboard(st.session_state['dashboard_symbol'])
     
     if dashboard.data:
-        # Render dashboard
         dashboard.render_all()
-        
-        # Auto-refresh option
-        if st.sidebar.checkbox("🔄 تحديث تلقائي", value=False):
-            st.sidebar.info(f"التحديث كل {dashboard.config['update_interval']} ثانية")
-            time.sleep(dashboard.config['update_interval'])
-            dashboard.update_price()
-            st.rerun()
-        
-        # Export options
-        st.sidebar.divider()
-        if st.sidebar.button("📥 تصدير البيانات (JSON)"):
-            data = dashboard.export_data("json")
-            st.sidebar.download_button(
-                label="تنزيل JSON",
-                data=data,
-                file_name=f"{dashboard.symbol}_dashboard.json",
-                mime="application/json"
-            )
-    
     else:
         st.error(f"❌ فشل تحميل بيانات {st.session_state['dashboard_symbol']}")
         st.info("💡 تأكد من صحة رمز السهم وحاول مرة أخرى")
