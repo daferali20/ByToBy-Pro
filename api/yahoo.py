@@ -9,18 +9,24 @@ import time
 import json
 from typing import Any, Optional, Dict, List
 from datetime import datetime, timedelta
-
-import pandas as pd
-import requests
-import yfinance as yf
-
-# Import utils
 import sys
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import pandas as pd
+import requests
+
+# Try to import yfinance with error handling
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except ImportError as e:
+    YFINANCE_AVAILABLE = False
+    print(f"⚠️ yfinance not available: {e}")
+
+# Import utils
 try:
     from utils.logger import get_logger
     from utils.cache import cached
@@ -51,12 +57,17 @@ class YahooAPI:
             "Accept-Language": "en-US,en;q=0.9",
         })
         
-        # Test connection
-        self._test_connection()
-        logger.info("Yahoo API Initialized")
+        self.yfinance_available = YFINANCE_AVAILABLE
+        
+        if self.yfinance_available:
+            self._test_connection()
+        
+        logger.info(f"Yahoo API Initialized (yfinance: {self.yfinance_available})")
     
     def _test_connection(self):
         """Test if Yahoo Finance is accessible."""
+        if not self.yfinance_available:
+            return False
         try:
             test = yf.Ticker("AAPL")
             info = test.fast_info
@@ -67,8 +78,11 @@ class YahooAPI:
             logger.warning(f"⚠️ Yahoo Finance connection test failed: {e}")
         return False
     
-    def _request(self, symbol: str) -> Optional[yf.Ticker]:
+    def _request(self, symbol: str) -> Optional[Any]:
         """Get Yahoo Ticker object with retries."""
+        if not self.yfinance_available:
+            return None
+            
         for attempt in range(self.retries):
             try:
                 ticker = yf.Ticker(symbol)
@@ -101,6 +115,24 @@ class YahooAPI:
         if len(description) > max_length:
             description = description[:max_length - 3] + "..."
         return description
+    
+    def _generate_sample_data(self) -> pd.DataFrame:
+        """Generate sample data for testing."""
+        import numpy as np
+        dates = pd.date_range(end=datetime.now(), periods=100, freq='D')
+        base_price = 100
+        np.random.seed(42)
+        returns = np.random.randn(100) * 0.02
+        prices = base_price * np.exp(np.cumsum(returns))
+        
+        return pd.DataFrame({
+            'Date': dates,
+            'Open': prices * (1 + np.random.randn(100) * 0.005),
+            'High': prices * (1 + np.abs(np.random.randn(100) * 0.01)),
+            'Low': prices * (1 - np.abs(np.random.randn(100) * 0.01)),
+            'Close': prices,
+            'Volume': np.random.randint(100000, 1000000, 100)
+        })
     
     def _get_fallback_info(self, symbol: str) -> Dict[str, Any]:
         """Get fallback company information."""
@@ -203,6 +235,9 @@ class YahooAPI:
     
     def validate_symbol(self, symbol: str) -> bool:
         """Validate if symbol exists."""
+        if not self.yfinance_available:
+            return symbol in self._get_fallback_info(symbol)
+            
         try:
             ticker = self._request(symbol)
             if ticker is None:
@@ -214,10 +249,23 @@ class YahooAPI:
     
     @cached(ttl=20)
     def get_price(self, symbol: str) -> Dict[str, Any]:
-        """Get current stock price - REAL DATA."""
+        """Get current stock price."""
+        if not self.yfinance_available:
+            return {
+                "symbol": symbol,
+                "price": 100.50,
+                "open": 99.00,
+                "high": 102.00,
+                "low": 98.50,
+                "volume": 1000000,
+                "market_cap": 750000000000,
+                "currency": "USD",
+                "timestamp": datetime.now().isoformat(),
+                "source": "fallback"
+            }
+        
         ticker = self._request(symbol)
         if ticker is None:
-            # Return fallback if API fails
             return {
                 "symbol": symbol,
                 "price": 100.50,
@@ -262,10 +310,12 @@ class YahooAPI:
     
     @cached(ttl=300)
     def get_history(self, symbol: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame:
-        """Get historical data - REAL DATA."""
+        """Get historical data."""
+        if not self.yfinance_available:
+            return self._generate_sample_data()
+        
         ticker = self._request(symbol)
         if ticker is None:
-            # Return sample data if API fails
             return self._generate_sample_data()
         
         try:
@@ -276,7 +326,6 @@ class YahooAPI:
             df.reset_index(inplace=True)
             df['Date'] = pd.to_datetime(df['Date'])
             
-            # Ensure we have required columns
             required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
             for col in required_cols:
                 if col not in df.columns:
@@ -287,30 +336,14 @@ class YahooAPI:
             logger.exception(f"Error getting history for {symbol}: {e}")
             return self._generate_sample_data()
     
-    def _generate_sample_data(self) -> pd.DataFrame:
-        """Generate sample data for testing."""
-        dates = pd.date_range(end=datetime.now(), periods=100, freq='D')
-        base_price = 100
-        
-        # Generate realistic price data
-        import numpy as np
-        np.random.seed(42)
-        
-        returns = np.random.randn(100) * 0.02
-        prices = base_price * np.exp(np.cumsum(returns))
-        
-        return pd.DataFrame({
-            'Date': dates,
-            'Open': prices * (1 + np.random.randn(100) * 0.005),
-            'High': prices * (1 + np.abs(np.random.randn(100) * 0.01)),
-            'Low': prices * (1 - np.abs(np.random.randn(100) * 0.01)),
-            'Close': prices,
-            'Volume': np.random.randint(100000, 1000000, 100)
-        })
-    
     @cached(ttl=3600)
     def get_company_info(self, symbol: str) -> Dict[str, Any]:
-        """Get comprehensive company information - REAL DATA."""
+        """Get comprehensive company information."""
+        if not self.yfinance_available:
+            fallback = self._get_fallback_info(symbol)
+            fallback["source"] = "fallback"
+            return fallback
+        
         ticker = self._request(symbol)
         
         if ticker is not None:
