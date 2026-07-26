@@ -207,7 +207,9 @@ class Cache:
         }
 
 # إنشاء نسخة واحدة من التخزين المؤقت
-cache = Cache(default_ttl=300)
+from config import config
+
+cache = Cache(default_ttl=config.CACHE_MINUTES * 60)
 
 def cached(ttl: Optional[int] = None, key_prefix: str = ""):
     """
