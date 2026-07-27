@@ -1,0 +1,180 @@
+import pandas as pd
+import numpy as np
+from typing import Dict, List, Optional, Tuple
+from features import TechnicalFeatures
+from score import ScoreCalculator
+from random_forest import RandomForestModel
+from xgboost_model import XGBoostModel
+from lightgbm_model import LightGBMModel
+from tensorflow_model import TensorFlowModel
+import joblib
+
+class PredictionSystem:
+    """نظام التنبؤ بالأسعار باستخدام نماذج متعددة"""
+    
+    def __init__(self, data: pd.DataFrame, model_type: str = 'ensemble'):
+        """
+        تهيئة نظام التنبؤ
+        
+        Args:
+            data: DataFrame يحتوي على بيانات OHLCV
+            model_type: نوع النموذج ('ensemble', 'random_forest', 'xgboost', 'lightgbm', 'tensorflow')
+        """
+        self.data = data
+        self.model_type = model_type
+        self.models = {}
+        self.predictions = {}
+        
+        # تهيئة النماذج
+        self._initialize_models()
+        
+    def _initialize_models(self):
+        """تهيئة جميع النماذج"""
+        if self.model_type == 'ensemble' or self.model_type == 'random_forest':
+            self.models['random_forest'] = RandomForestModel('classifier')
+        if self.model_type == 'ensemble' or self.model_type == 'xgboost':
+            self.models['xgboost'] = XGBoostModel('classifier')
+        if self.model_type == 'ensemble' or self.model_type == 'lightgbm':
+            self.models['lightgbm'] = LightGBMModel('classifier')
+        if self.model_type == 'ensemble' or self.model_type == 'tensorflow':
+            self.models['tensorflow'] = TensorFlowModel('classifier')
+    
+    def prepare_features(self) -> pd.DataFrame:
+        """تجهيز الميزات للتنبؤ"""
+        tech_features = TechnicalFeatures(self.data)
+        features = tech_features.extract_all_features()
+        
+        # تنظيف البيانات
+        features = features.dropna()
+        
+        return features
+    
+    def prepare_target(self, horizon: int = 5) -> pd.Series:
+        """تجهيز الهدف للتنبؤ"""
+        # إنشاء هدف للتصنيف (ارتفاع/انخفاض)
+        future_prices = self.data['close'].shift(-horizon)
+        current_prices = self.data['close']
+        target = (future_prices > current_prices).astype(int)
+        
+        # محاذاة البيانات
+        return target.iloc[:-horizon]
+    
+    def train_models(self, features: pd.DataFrame, target: pd.Series) -> Dict:
+        """تدريب جميع النماذج"""
+        training_results = {}
+        
+        for model_name, model in self.models.items():
+            print(f"Training {model_name}...")
+            
+            # تجهيز البيانات لكل نموذج
+            X_train, X_test, y_train, y_test = model.prepare_data(features, target)
+            
+            # تدريب النموذج
+            training_results[model_name] = model.train(X_train, y_train)
+            
+            # تقييم النموذج
+            eval_results = model.evaluate(X_test, y_test)
+            training_results[model_name]['evaluation'] = eval_results
+            
+        return training_results
+    
+    def predict_future(self, features: pd.DataFrame) -> Dict:
+        """التنبؤ بالاتجاه المستقبلي"""
+        predictions = {}
+        
+        for model_name, model in self.models.items():
+            if model.is_fitted:
+                # استخدام أحدث البيانات للتنبؤ
+                latest_features = features.iloc[-1:].values
+                scaled_features = model.scaler.transform(latest_features)
+                
+                # الحصول على التنبؤ
+                pred = model.predict(scaled_features)[0]
+                proba = model.predict_proba(scaled_features)[0][1] if hasattr(model, 'predict_proba') else None
+                
+                predictions[model_name] = {
+                    'prediction': int(pred),
+                    'confidence': float(proba) if proba is not None else 0.5,
+                    'signal': 'BUY' if pred == 1 else 'SELL'
+                }
+        
+        return predictions
+    
+    def ensemble_predict(self, predictions: Dict) -> Dict:
+        """الجمع بين تنبؤات النماذج المختلفة"""
+        if not predictions:
+            return {'signal': 'NEUTRAL', 'confidence': 0.0}
+        
+        # حساب متوسط التنبؤات
+        avg_prediction = np.mean([p['prediction'] for p in predictions.values()])
+        avg_confidence = np.mean([p['confidence'] for p in predictions.values()])
+        
+        # التصويت بالأغلبية
+        vote_count = sum([p['prediction'] for p in predictions.values()])
+        consensus = vote_count / len(predictions)
+        
+        return {
+            'signal': 'BUY' if avg_prediction >= 0.5 else 'SELL',
+            'confidence': avg_confidence,
+            'consensus': consensus,
+            'model_predictions': predictions
+        }
+    
+    def run_prediction(self) -> Dict:
+        """تشغيل نظام التنبؤ الكامل"""
+        # تجهيز الميزات والهدف
+        features = self.prepare_features()
+        
+        if len(features) > 0:
+            # التنبؤ
+            predictions = self.predict_future(features)
+            
+            # إذا كان هناك نماذج متعددة، استخدم التصويت الجماعي
+            if len(predictions) > 1:
+                result = self.ensemble_predict(predictions)
+            else:
+                result = list(predictions.values())[0]
+            
+            # إضافة مؤشرات إضافية
+            result['market_analysis'] = self._analyze_market()
+            
+            return result
+        else:
+            return {
+                'signal': 'NEUTRAL',
+                'confidence': 0.0,
+                'error': 'لا توجد بيانات كافية للتنبؤ'
+            }
+    
+    def _analyze_market(self) -> Dict:
+        """تحليل السوق الإضافي"""
+        # استخدام ScoreCalculator للتحليل
+        score_calc = ScoreCalculator(self.data)
+        scores = score_calc.calculate_all_scores()
+        
+        return {
+            'overall_score': scores['overall_score'],
+            'technical_score': scores['technical_score'],
+            'pattern_score': scores['pattern_score'],
+            'volume_score': scores['volume_score'],
+            'momentum_score': scores['momentum_score'],
+            'recommendation': 'BUY' if scores['overall_score'] > 50 else 'SELL'
+        }
+    
+    def save_models(self, base_path: str = 'models/'):
+        """حفظ جميع النماذج"""
+        import os
+        os.makedirs(base_path, exist_ok=True)
+        
+        for model_name, model in self.models.items():
+            if model.is_fitted:
+                model.save_model(f"{base_path}{model_name}")
+    
+    def load_models(self, base_path: str = 'models/'):
+        """تحميل النماذج المحفوظة"""
+        for model_name, model in self.models.items():
+            try:
+                model.load_model(f"{base_path}{model_name}")
+                print(f"Loaded {model_name}")
+            except:
+                print(f"Could not load {model_name}")
