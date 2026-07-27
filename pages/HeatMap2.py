@@ -104,6 +104,69 @@ def generate_sample_data():
     return pd.DataFrame(data)
 
 # ============================================
+# Ensure DataFrame has required columns
+# ============================================
+def prepare_dataframe(df):
+    """Ensure DataFrame has all required columns"""
+    
+    # If DataFrame is empty, return empty
+    if df.empty:
+        return df
+    
+    # Ensure 'name' column exists
+    if 'name' not in df.columns:
+        if 'companyName' in df.columns:
+            df['name'] = df['companyName']
+        elif 'company' in df.columns:
+            df['name'] = df['company']
+        else:
+            df['name'] = df['symbol']
+    
+    # Ensure 'sector' column exists
+    if 'sector' not in df.columns:
+        df['sector'] = 'غير محدد'
+    
+    # Ensure 'change_pct' column exists
+    if 'change_pct' not in df.columns:
+        df['change_pct'] = np.random.normal(0, 3, len(df))
+    
+    # Ensure 'price' column exists
+    if 'price' not in df.columns:
+        if 'currentPrice' in df.columns:
+            df['price'] = df['currentPrice']
+        else:
+            df['price'] = np.random.uniform(10, 500, len(df))
+    
+    # Ensure 'volume' column exists
+    if 'volume' not in df.columns:
+        df['volume'] = np.random.randint(100000, 10000000, len(df))
+    
+    # Ensure 'market_cap' column exists
+    if 'market_cap' not in df.columns:
+        if 'marketCap' in df.columns:
+            df['market_cap'] = df['marketCap']
+        else:
+            df['market_cap'] = np.random.uniform(10, 3000, len(df))
+    
+    # Add other metrics if they don't exist
+    if 'pe_ratio' not in df.columns:
+        df['pe_ratio'] = np.random.uniform(5, 50, len(df))
+    
+    if 'rsi' not in df.columns:
+        df['rsi'] = np.random.uniform(30, 70, len(df))
+    
+    if 'volume_change' not in df.columns:
+        df['volume_change'] = np.random.normal(0, 15, len(df))
+    
+    if 'momentum' not in df.columns:
+        df['momentum'] = np.random.uniform(-30, 30, len(df))
+    
+    if 'volatility' not in df.columns:
+        df['volatility'] = np.random.uniform(10, 40, len(df))
+    
+    return df
+
+# ============================================
 # Heatmap Functions
 # ============================================
 def create_heatmap(df, metric, title, color_scale="RdYlGn"):
@@ -158,13 +221,19 @@ def create_heatmap(df, metric, title, color_scale="RdYlGn"):
 
 def create_scatter_matrix(df):
     """Create scatter matrix for multi-dimensional analysis"""
-    # Select numerical columns
-    num_cols = ['change_pct', 'volume', 'market_cap', 'pe_ratio', 'rsi']
+    # Select numerical columns that exist
+    num_cols = []
+    for col in ['change_pct', 'volume', 'market_cap', 'pe_ratio', 'rsi']:
+        if col in df.columns:
+            num_cols.append(col)
+    
+    if len(num_cols) < 2:
+        return None
     
     fig = px.scatter_matrix(
         df,
         dimensions=num_cols,
-        color='sector',
+        color='sector' if 'sector' in df.columns else None,
         title="مصفوفة التشتت - علاقات المؤشرات",
         labels={
             'change_pct': 'التغير %',
@@ -196,14 +265,20 @@ def display_leaderboard(df):
     # Create three columns for the leaderboards
     col1, col2, col3 = st.columns(3)
     
+    # Check if required columns exist
+    required_cols = ['symbol', 'name', 'change_pct', 'price', 'sector']
+    for col in required_cols:
+        if col not in df.columns:
+            st.error(f"العمود {col} غير موجود في البيانات")
+            return
+    
     # 1. Top Gainers (الأكثر ارتفاعاً)
     with col1:
         st.markdown("### 📈 الأكثر ارتفاعاً")
-        top_gainers = df.nlargest(5, 'change_pct')[['symbol', 'name', 'change_pct', 'price', 'sector']]
+        top_gainers = df.nlargest(5, 'change_pct')
         
         if not top_gainers.empty:
             for idx, row in top_gainers.iterrows():
-                change_color = "🟢" if row['change_pct'] > 0 else "🔴"
                 st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); 
                             padding: 10px; 
@@ -222,7 +297,7 @@ def display_leaderboard(df):
     # 2. Top Losers (الأكثر انخفاضاً)
     with col2:
         st.markdown("### 📉 الأكثر انخفاضاً")
-        top_losers = df.nsmallest(5, 'change_pct')[['symbol', 'name', 'change_pct', 'price', 'sector']]
+        top_losers = df.nsmallest(5, 'change_pct')
         
         if not top_losers.empty:
             for idx, row in top_losers.iterrows():
@@ -247,11 +322,10 @@ def display_leaderboard(df):
         
         # Calculate absolute change for volatility
         df['abs_change'] = df['change_pct'].abs()
-        most_active = df.nlargest(5, 'abs_change')[['symbol', 'name', 'change_pct', 'price', 'sector', 'volume']]
+        most_active = df.nlargest(5, 'abs_change')
         
         if not most_active.empty:
             for idx, row in most_active.iterrows():
-                change_color = "🟢" if row['change_pct'] > 0 else "🔴"
                 arrow = "▲" if row['change_pct'] > 0 else "▼"
                 color = "#00ff00" if row['change_pct'] > 0 else "#ff0000"
                 
@@ -288,8 +362,11 @@ def display_leaderboard(df):
     
     with col4:
         # Most active sector
-        most_active_sector = df.groupby('sector')['abs_change'].mean().idxmax()
-        st.metric("🔥 أكثر قطاع نشاطاً", most_active_sector)
+        if 'sector' in df.columns and 'abs_change' in df.columns:
+            most_active_sector = df.groupby('sector')['abs_change'].mean().idxmax()
+            st.metric("🔥 أكثر قطاع نشاطاً", most_active_sector)
+        else:
+            st.metric("🔥 أكثر قطاع نشاطاً", "غير محدد")
 
 # ============================================
 # Main App
@@ -355,7 +432,8 @@ def main():
         
         # Filter by sector
         st.subheader("🔍 تصفية")
-        all_sectors = ["الكل"] + sorted(list(set(generate_sample_data()['sector'])))
+        sample_df = generate_sample_data()
+        all_sectors = ["الكل"] + sorted(list(set(sample_df['sector'])))
         selected_sector = st.selectbox("القطاع", all_sectors)
         
         # Number of stocks
@@ -380,33 +458,36 @@ def main():
                 # Get real data
                 symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "2222.SR", "1120.SR", "7010.SR",
                           "NVDA", "META", "NFLX", "JPM", "VTI", "KO", "PFE"]
-                df = get_portfolio_data(symbols)
-                df = pd.DataFrame(df)
+                data = get_portfolio_data(symbols)
+                df = pd.DataFrame(data)
                 
-                # Add random metrics for demonstration
-                if not df.empty:
-                    df['change_pct'] = np.random.normal(0, 3, len(df))
-                    df['rsi'] = np.random.uniform(30, 70, len(df))
-                    df['volume_change'] = np.random.normal(0, 15, len(df))
-                    df['pe_ratio'] = np.random.uniform(5, 50, len(df))
-                    df['momentum'] = np.random.uniform(-30, 30, len(df))
-                    df['volatility'] = np.random.uniform(10, 40, len(df))
-                    df['sector'] = np.random.choice(["التكنولوجيا", "المالية", "الطاقة", "البيع بالتجزئة"], len(df))
-                    df['name'] = df['symbol']
+                # Prepare the dataframe (add missing columns)
+                df = prepare_dataframe(df)
+                
+                # Add random metrics for demonstration if they don't exist
+                if 'change_pct' in df.columns:
+                    # Use existing change_pct or generate new ones
+                    pass
+                
             except Exception as e:
                 st.warning(f"⚠️ تعذر تحميل البيانات الحقيقية: {e}")
                 df = generate_sample_data()
+                df = prepare_dataframe(df)
         else:
             df = generate_sample_data()
+            df = prepare_dataframe(df)
     
     # Filter by sector
-    if selected_sector != "الكل":
+    if selected_sector != "الكل" and 'sector' in df.columns:
         df = df[df['sector'] == selected_sector]
     
     # Limit number of stocks
     if len(df) > n_stocks:
         # Sort by market cap and take top n
-        df = df.sort_values('market_cap', ascending=False).head(n_stocks)
+        if 'market_cap' in df.columns:
+            df = df.sort_values('market_cap', ascending=False).head(n_stocks)
+        else:
+            df = df.head(n_stocks)
     
     # ============================================
     # Display Leaderboard
@@ -417,10 +498,13 @@ def main():
     # Heatmap
     # ============================================
     
-    # Create heatmap
-    title = f"الخريطة الحرارية - {metric} حسب السهم"
-    fig = create_heatmap(df, metric_col, title, color_scheme)
-    st.plotly_chart(fig, use_container_width=True)
+    # Create heatmap if metric column exists
+    if metric_col in df.columns:
+        title = f"الخريطة الحرارية - {metric} حسب السهم"
+        fig = create_heatmap(df, metric_col, title, color_scheme)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning(f"⚠️ العمود {metric_col} غير موجود في البيانات")
     
     # ============================================
     # Additional Visualizations
@@ -434,62 +518,68 @@ def main():
         # Bar chart of selected metric
         st.subheader(f"📊 {metric} - ترتيب الأسهم")
         
-        sorted_df = df.sort_values(metric_col, ascending=False)
-        
-        # Limit for readability
-        display_df = sorted_df.head(15)
-        
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            x=display_df['symbol'],
-            y=display_df[metric_col],
-            text=display_df[metric_col].round(2),
-            textposition='outside',
-            marker_color=display_df[metric_col],
-            marker_colorscale=color_scheme,
-            name=metric
-        ))
-        
-        fig_bar.update_layout(
-            title=f"ترتيب الأسهم حسب {metric}",
-            xaxis_title="السهم",
-            yaxis_title=metric,
-            template="plotly_dark",
-            height=400,
-            showlegend=False
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        if metric_col in df.columns:
+            sorted_df = df.sort_values(metric_col, ascending=False)
+            
+            # Limit for readability
+            display_df = sorted_df.head(15)
+            
+            fig_bar = go.Figure()
+            fig_bar.add_trace(go.Bar(
+                x=display_df['symbol'],
+                y=display_df[metric_col],
+                text=display_df[metric_col].round(2),
+                textposition='outside',
+                marker_color=display_df[metric_col],
+                marker_colorscale=color_scheme,
+                name=metric
+            ))
+            
+            fig_bar.update_layout(
+                title=f"ترتيب الأسهم حسب {metric}",
+                xaxis_title="السهم",
+                yaxis_title=metric,
+                template="plotly_dark",
+                height=400,
+                showlegend=False
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+        else:
+            st.info("لا توجد بيانات كافية")
     
     with col2:
         # Sector analysis
         st.subheader("📊 تحليل حسب القطاع")
         
-        sector_agg = df.groupby('sector').agg({
-            'change_pct': 'mean',
-            'volume': 'sum',
-            'market_cap': 'sum'
-        }).reset_index()
-        
-        fig_sector = go.Figure()
-        fig_sector.add_trace(go.Bar(
-            x=sector_agg['sector'],
-            y=sector_agg['change_pct'],
-            text=sector_agg['change_pct'].round(2),
-            textposition='outside',
-            marker_color=sector_agg['change_pct'],
-            marker_colorscale=color_scheme,
-            name="متوسط التغير"
-        ))
-        
-        fig_sector.update_layout(
-            title="متوسط التغير اليومي حسب القطاع",
-            xaxis_title="القطاع",
-            yaxis_title="متوسط التغير (%)",
-            template="plotly_dark",
-            height=400,
-            showlegend=False
-        )
-        st.plotly_chart(fig_sector, use_container_width=True)
+        if 'sector' in df.columns and 'change_pct' in df.columns:
+            sector_agg = df.groupby('sector').agg({
+                'change_pct': 'mean',
+                'volume': 'sum',
+                'market_cap': 'sum'
+            }).reset_index()
+            
+            fig_sector = go.Figure()
+            fig_sector.add_trace(go.Bar(
+                x=sector_agg['sector'],
+                y=sector_agg['change_pct'],
+                text=sector_agg['change_pct'].round(2),
+                textposition='outside',
+                marker_color=sector_agg['change_pct'],
+                marker_colorscale=color_scheme,
+                name="متوسط التغير"
+            ))
+            
+            fig_sector.update_layout(
+                title="متوسط التغير اليومي حسب القطاع",
+                xaxis_title="القطاع",
+                yaxis_title="متوسط التغير (%)",
+                template="plotly_dark",
+                height=400,
+                showlegend=False
+            )
+            st.plotly_chart(fig_sector, use_container_width=True)
+        else:
+            st.info("لا توجد بيانات كافية")
     
     # ============================================
     # Scatter Matrix (if enough data)
@@ -499,20 +589,32 @@ def main():
         st.subheader("📊 تحليل متعدد المؤشرات")
         
         fig_matrix = create_scatter_matrix(df)
-        st.plotly_chart(fig_matrix, use_container_width=True)
+        if fig_matrix:
+            st.plotly_chart(fig_matrix, use_container_width=True)
+        else:
+            st.info("لا توجد بيانات كافية لعرض مصفوفة التشتت")
     
     # ============================================
     # Data Table
     # ============================================
     with st.expander("📋 عرض البيانات التفصيلية", expanded=False):
         display_df = df.copy()
-        display_df['change_pct'] = display_df['change_pct'].apply(lambda x: f"{x:.2f}%")
-        display_df['market_cap'] = display_df['market_cap'].apply(lambda x: f"${x:.2f}B")
-        display_df['volume'] = display_df['volume'].apply(lambda x: f"{x:,}")
-        display_df['pe_ratio'] = display_df['pe_ratio'].apply(lambda x: f"{x:.1f}")
-        display_df['rsi'] = display_df['rsi'].apply(lambda x: f"{x:.1f}")
-        display_df['momentum'] = display_df['momentum'].apply(lambda x: f"{x:.1f}%")
-        display_df['volatility'] = display_df['volatility'].apply(lambda x: f"{x:.1f}%")
+        
+        # Format columns for display
+        if 'change_pct' in display_df.columns:
+            display_df['change_pct'] = display_df['change_pct'].apply(lambda x: f"{x:.2f}%")
+        if 'market_cap' in display_df.columns:
+            display_df['market_cap'] = display_df['market_cap'].apply(lambda x: f"${x:.2f}B")
+        if 'volume' in display_df.columns:
+            display_df['volume'] = display_df['volume'].apply(lambda x: f"{x:,}")
+        if 'pe_ratio' in display_df.columns:
+            display_df['pe_ratio'] = display_df['pe_ratio'].apply(lambda x: f"{x:.1f}")
+        if 'rsi' in display_df.columns:
+            display_df['rsi'] = display_df['rsi'].apply(lambda x: f"{x:.1f}")
+        if 'momentum' in display_df.columns:
+            display_df['momentum'] = display_df['momentum'].apply(lambda x: f"{x:.1f}%")
+        if 'volatility' in display_df.columns:
+            display_df['volatility'] = display_df['volatility'].apply(lambda x: f"{x:.1f}%")
         
         st.dataframe(display_df, use_container_width=True)
     
