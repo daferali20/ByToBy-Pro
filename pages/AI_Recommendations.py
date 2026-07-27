@@ -1,3 +1,11 @@
+# pages/AI_Recommendations.py (المعدل)
+import sys
+from pathlib import Path
+
+# إضافة المسار الصحيح
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 # AI_Recommendations.py - الجزء الأول
 import streamlit as st
 import pandas as pd
