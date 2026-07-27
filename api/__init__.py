@@ -1,4 +1,3 @@
-```python
 """
 ByToBy Pro - API Package
 """
@@ -14,6 +13,7 @@ from .yahoo_api import (
 )
 
 __version__ = "1.0.0"
+__author__ = "ByToBy Pro Team"
 
 __all__ = [
     "YahooAPI",
@@ -25,5 +25,5 @@ __all__ = [
     "validate_symbol",
 ]
 
+# Package initialization
 print("✅ ByToBy Pro API loaded")
-```
