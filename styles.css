@@ -1,0 +1,556 @@
+/* styles.css */
+/* ============================================
+   ByToBy Pro - Custom Styles
+   ============================================ */
+
+/* ============================================
+   Global Styles
+   ============================================ */
+
+/* Main background and text */
+.stApp {
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e0e0;
+}
+
+/* Main container */
+.main {
+    padding: 0rem 1rem;
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Arabic text support */
+* {
+    font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Cairo', sans-serif;
+}
+
+/* ============================================
+   Cards and Containers
+   ============================================ */
+
+/* Custom card */
+.custom-card {
+    background: linear-gradient(145deg, #1e1e3a, #16162e);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.custom-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* Metric cards */
+.metric-card {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.metric-card .metric-label {
+    font-size: 0.9rem;
+    color: #a0a0b0;
+    margin-top: 0.3rem;
+}
+
+/* ============================================
+   Sidebar
+   ============================================ */
+
+.css-1d391kg {
+    background: linear-gradient(180deg, #0f0f1a, #1a1a2e) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.css-1d391kg .stSelectbox,
+.css-1d391kg .stTextInput,
+.css-1d391kg .stSlider {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.css-1d391kg .stSelectbox:hover,
+.css-1d391kg .stTextInput:hover,
+.css-1d391kg .stSlider:hover {
+    border-color: rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Sidebar header */
+.sidebar-header {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+/* Primary button */
+.stButton > button {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+    background: linear-gradient(135deg, #764ba2, #667eea) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* Secondary button */
+.stButton > button[kind="secondary"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(102, 126, 234, 0.3) !important;
+}
+
+/* ============================================
+   Dataframes and Tables
+   ============================================ */
+
+/* Dataframe container */
+.dataframe-container {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Dataframe styling */
+.stDataFrame {
+    background: transparent !important;
+}
+
+.stDataFrame table {
+    border-collapse: separate !important;
+    border-spacing: 0 4px !important;
+}
+
+.stDataFrame thead tr th {
+    background: linear-gradient(135deg, #1a1a2e, #16213e) !important;
+    color: #a0a0b0 !important;
+    font-weight: 600 !important;
+    padding: 0.8rem 1rem !important;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2) !important;
+}
+
+.stDataFrame tbody tr {
+    background: rgba(255, 255, 255, 0.02) !important;
+    transition: all 0.2s ease !important;
+}
+
+.stDataFrame tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05) !important;
+    transform: scale(1.01);
+}
+
+.stDataFrame tbody td {
+    padding: 0.6rem 1rem !important;
+    color: #d0d0d0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ============================================
+   Charts and Visualizations
+   ============================================ */
+
+/* Chart container */
+.chart-container {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    border-color: rgba(102, 126, 234, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Plotly charts */
+.js-plotly-plot {
+    border-radius: 10px !important;
+}
+
+/* ============================================
+   Metrics and Statistics
+   ============================================ */
+
+/* Custom metric */
+.custom-metric {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 12px;
+    padding: 1.2rem;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+}
+
+.custom-metric:hover {
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateY(-3px);
+}
+
+.custom-metric .label {
+    color: #a0a0b0;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.custom-metric .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ============================================
+   Status Messages
+   ============================================ */
+
+/* Success message */
+.stAlert[data-baseweb="notification"] {
+    background: linear-gradient(135deg, rgba(0, 255, 0, 0.05), rgba(0, 200, 0, 0.1)) !important;
+    border: 1px solid rgba(0, 255, 0, 0.2) !important;
+    border-radius: 10px !important;
+}
+
+/* Info message */
+.stAlert[data-baseweb="notification"][kind="info"] {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.1)) !important;
+    border: 1px solid rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Warning message */
+.stAlert[data-baseweb="notification"][kind="warning"] {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.05), rgba(255, 200, 0, 0.1)) !important;
+    border: 1px solid rgba(255, 165, 0, 0.2) !important;
+}
+
+/* Error message */
+.stAlert[data-baseweb="notification"][kind="error"] {
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.05), rgba(200, 0, 0, 0.1)) !important;
+    border: 1px solid rgba(255, 0, 0, 0.2) !important;
+}
+
+/* ============================================
+   Expander
+   ============================================ */
+
+.streamlit-expanderHeader {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05)) !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: #d0d0d0 !important;
+    font-weight: 600 !important;
+}
+
+.streamlit-expanderHeader:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)) !important;
+    border-color: rgba(102, 126, 234, 0.2) !important;
+}
+
+.streamlit-expanderContent {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 0 0 10px 10px !important;
+    padding: 1rem !important;
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 2px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 10px !important;
+    padding: 0.5rem !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px !important;
+    padding: 0.6rem 1.5rem !important;
+    color: #a0a0b0 !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(102, 126, 234, 0.05) !important;
+    color: #e0e0e0 !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)) !important;
+    color: #ffffff !important;
+    border-bottom: 2px solid #667eea !important;
+}
+
+/* ============================================
+   Progress Bars and Spinners
+   ============================================ */
+
+.stProgress > div > div {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+}
+
+/* ============================================
+   Divider
+   ============================================ */
+
+hr {
+    border: none !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.3), transparent) !important;
+    margin: 2rem 0 !important;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 768px) {
+    .main {
+        padding: 0rem 0.5rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem !important;
+    }
+    
+    .metric-card .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .stDataFrame table {
+        font-size: 0.8rem;
+    }
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* ============================================
+   Custom Components
+   ============================================ */
+
+/* Leaderboard card */
+.leaderboard-card {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.leaderboard-card:hover {
+    transform: translateX(5px);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.leaderboard-card.gain {
+    border-right: 4px solid #00ff00;
+}
+
+.leaderboard-card.loss {
+    border-right: 4px solid #ff0000;
+}
+
+.leaderboard-card.active {
+    border-right: 4px solid #ff6600;
+}
+
+/* Status badge */
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: rgba(0, 255, 0, 0.1);
+    color: #00ff00;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.badge-danger {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff0000;
+    border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.badge-warning {
+    background: rgba(255, 165, 0, 0.1);
+    color: #ffa500;
+    border: 1px solid rgba(255, 165, 0, 0.2);
+}
+
+.badge-info {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+
+.footer {
+    text-align: center;
+    padding: 2rem 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 2rem;
+}
+
+.footer a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* ============================================
+   Loading Spinner
+   ============================================ */
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.loading-spinner .spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(102, 126, 234, 0.1);
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
