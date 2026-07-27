@@ -4,22 +4,13 @@ from typing import Dict, List, Optional, Tuple
 import os
 from datetime import datetime
 import json
-from predict import PredictionSystem
-from score import ScoreCalculator
-from features import TechnicalFeatures
-from pattern_detector import PatternDetector
+from .predict import PredictionSystem
+from .score import ScoreCalculator
 
 class TrainingSystem:
     """نظام تدريب النماذج وتقييم الأداء"""
     
     def __init__(self, data: pd.DataFrame, model_type: str = 'ensemble'):
-        """
-        تهيئة نظام التدريب
-        
-        Args:
-            data: DataFrame يحتوي على بيانات OHVLCV
-            model_type: نوع النموذج للتدريب
-        """
         self.data = data
         self.model_type = model_type
         self.prediction_system = PredictionSystem(data, model_type)
@@ -29,19 +20,15 @@ class TrainingSystem:
         """تدريب جميع النماذج"""
         print("بدء تدريب النماذج...")
         
-        # تجهيز البيانات
         features = self.prediction_system.prepare_features()
         target = self.prediction_system.prepare_target()
         
-        # مطابقة البيانات
         min_len = min(len(features), len(target))
         features = features.iloc[:min_len]
         target = target.iloc[:min_len]
         
-        # تدريب النماذج
         training_results = self.prediction_system.train_models(features, target)
         
-        # حفظ سجل التدريب
         self.training_history = {
             'timestamp': datetime.now().isoformat(),
             'model_type': self.model_type,
@@ -59,20 +46,16 @@ class TrainingSystem:
         
         for model_name, model in self.prediction_system.models.items():
             if model.is_fitted:
-                # استخدام البيانات المتاحة للتقييم
                 features = self.prediction_system.prepare_features()
                 target = self.prediction_system.prepare_target()
                 
-                # مطابقة البيانات
                 min_len = min(len(features), len(target))
                 features = features.iloc[:min_len]
                 target = target.iloc[:min_len]
                 
-                # تقييم النموذج
                 X_train, X_test, y_train, y_test = model.prepare_data(features, target)
                 eval_results = model.evaluate(X_test, y_test)
                 
-                # إضافة معلومات إضافية
                 eval_results['model_name'] = model_name
                 eval_results['is_fitted'] = model.is_fitted
                 if hasattr(model, 'history') and model.history:
@@ -95,18 +78,14 @@ class TrainingSystem:
             predictions = []
             actuals = []
             
-            # الحصول على الميزات والهدف
             features = self.prediction_system.prepare_features()
             target = self.prediction_system.prepare_target()
             
-            # مطابقة البيانات
             min_len = min(len(features), len(target))
             features = features.iloc[:min_len]
             target = target.iloc[:min_len]
             
-            # تنفيذ backtest
             for i in range(0, len(features) - window_size, step_size):
-                # تقسيم البيانات
                 train_idx = i
                 test_idx = i + window_size
                 
@@ -118,21 +97,17 @@ class TrainingSystem:
                 if len(X_train) < 10 or len(X_test) == 0:
                     continue
                 
-                # تطبيق التطبيع
                 X_train_scaled = model.scaler.fit_transform(X_train)
                 X_test_scaled = model.scaler.transform(X_test)
                 
-                # تدريب النموذج على البيانات الحالية
                 model.train(X_train_scaled, y_train, use_grid_search=False)
                 
-                # التنبؤ
                 pred = model.predict(X_test_scaled)[0]
                 actual = y_test.iloc[0]
                 
                 predictions.append(pred)
                 actuals.append(actual)
             
-            # حساب نتائج backtest
             if predictions and actuals:
                 accuracy = np.mean(np.array(predictions) == np.array(actuals))
                 precision = np.sum((np.array(predictions) == 1) & (np.array(actuals) == 1)) / max(np.sum(np.array(predictions) == 1), 1)
@@ -151,10 +126,8 @@ class TrainingSystem:
     
     def compare_models(self) -> pd.DataFrame:
         """مقارنة أداء النماذج المختلفة"""
-        # تقييم النماذج
         evaluation = self.evaluate_models()
         
-        # إنشاء DataFrame للمقارنة
         comparison_data = []
         
         for model_name, results in evaluation.items():
@@ -167,7 +140,7 @@ class TrainingSystem:
                     'F1 Score': results.get('f1_score', results.get('accuracy')),
                     'Type': self.model_type
                 })
-            elif 'r2' in results:  # لموديلات الانحدار
+            elif 'r2' in results:
                 comparison_data.append({
                     'Model': model_name,
                     'R2 Score': results['r2'],
@@ -180,11 +153,9 @@ class TrainingSystem:
     
     def save_training_results(self, filepath: str = 'training_results.json'):
         """حفظ نتائج التدريب"""
-        # إضافة نتائج backtest
         backtest_results = self.backtest_models()
         self.training_history['backtest_results'] = backtest_results
         
-        # حفظ إلى ملف
         with open(filepath, 'w') as f:
             json.dump(self.training_history, f, default=str, indent=2)
         
@@ -240,7 +211,6 @@ class TrainingSystem:
                 أفضل المعلمات: {results['best_params']}
                 """
         
-        # إضافة نتائج backtest
         backtest = self.training_history.get('backtest_results', {})
         if backtest:
             report += """
@@ -262,22 +232,16 @@ class TrainingSystem:
     
     def run_full_training(self) -> Dict:
         """تشغيل عملية التدريب الكاملة"""
-        # تدريب النماذج
         train_results = self.train_all_models()
         
-        # تقييم النماذج
         eval_results = self.evaluate_models()
         
-        # Backtest
         backtest_results = self.backtest_models()
         
-        # حفظ النتائج
         self.save_training_results()
         
-        # حفظ النماذج
         self.prediction_system.save_models()
         
-        # إنشاء التقرير
         report = self.generate_training_report()
         
         return {
