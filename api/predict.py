@@ -1,31 +1,23 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
-from features import TechnicalFeatures
-from score import ScoreCalculator
-from random_forest import RandomForestModel
-from xgboost_model import XGBoostModel
-from lightgbm_model import LightGBMModel
-from tensorflow_model import TensorFlowModel
+from .features import TechnicalFeatures
+from .score import ScoreCalculator
+from .random_forest import RandomForestModel
+from .xgboost_model import XGBoostModel
+from .lightgbm_model import LightGBMModel
+from .tensorflow_model import TensorFlowModel
 import joblib
 
 class PredictionSystem:
     """نظام التنبؤ بالأسعار باستخدام نماذج متعددة"""
     
     def __init__(self, data: pd.DataFrame, model_type: str = 'ensemble'):
-        """
-        تهيئة نظام التنبؤ
-        
-        Args:
-            data: DataFrame يحتوي على بيانات OHLCV
-            model_type: نوع النموذج ('ensemble', 'random_forest', 'xgboost', 'lightgbm', 'tensorflow')
-        """
         self.data = data
         self.model_type = model_type
         self.models = {}
         self.predictions = {}
         
-        # تهيئة النماذج
         self._initialize_models()
         
     def _initialize_models(self):
@@ -43,20 +35,14 @@ class PredictionSystem:
         """تجهيز الميزات للتنبؤ"""
         tech_features = TechnicalFeatures(self.data)
         features = tech_features.extract_all_features()
-        
-        # تنظيف البيانات
         features = features.dropna()
-        
         return features
     
     def prepare_target(self, horizon: int = 5) -> pd.Series:
         """تجهيز الهدف للتنبؤ"""
-        # إنشاء هدف للتصنيف (ارتفاع/انخفاض)
         future_prices = self.data['close'].shift(-horizon)
         current_prices = self.data['close']
         target = (future_prices > current_prices).astype(int)
-        
-        # محاذاة البيانات
         return target.iloc[:-horizon]
     
     def train_models(self, features: pd.DataFrame, target: pd.Series) -> Dict:
@@ -66,13 +52,10 @@ class PredictionSystem:
         for model_name, model in self.models.items():
             print(f"Training {model_name}...")
             
-            # تجهيز البيانات لكل نموذج
             X_train, X_test, y_train, y_test = model.prepare_data(features, target)
             
-            # تدريب النموذج
             training_results[model_name] = model.train(X_train, y_train)
             
-            # تقييم النموذج
             eval_results = model.evaluate(X_test, y_test)
             training_results[model_name]['evaluation'] = eval_results
             
@@ -84,11 +67,9 @@ class PredictionSystem:
         
         for model_name, model in self.models.items():
             if model.is_fitted:
-                # استخدام أحدث البيانات للتنبؤ
                 latest_features = features.iloc[-1:].values
                 scaled_features = model.scaler.transform(latest_features)
                 
-                # الحصول على التنبؤ
                 pred = model.predict(scaled_features)[0]
                 proba = model.predict_proba(scaled_features)[0][1] if hasattr(model, 'predict_proba') else None
                 
@@ -105,11 +86,9 @@ class PredictionSystem:
         if not predictions:
             return {'signal': 'NEUTRAL', 'confidence': 0.0}
         
-        # حساب متوسط التنبؤات
         avg_prediction = np.mean([p['prediction'] for p in predictions.values()])
         avg_confidence = np.mean([p['confidence'] for p in predictions.values()])
         
-        # التصويت بالأغلبية
         vote_count = sum([p['prediction'] for p in predictions.values()])
         consensus = vote_count / len(predictions)
         
@@ -122,20 +101,16 @@ class PredictionSystem:
     
     def run_prediction(self) -> Dict:
         """تشغيل نظام التنبؤ الكامل"""
-        # تجهيز الميزات والهدف
         features = self.prepare_features()
         
         if len(features) > 0:
-            # التنبؤ
             predictions = self.predict_future(features)
             
-            # إذا كان هناك نماذج متعددة، استخدم التصويت الجماعي
             if len(predictions) > 1:
                 result = self.ensemble_predict(predictions)
             else:
-                result = list(predictions.values())[0]
+                result = list(predictions.values())[0] if predictions else {}
             
-            # إضافة مؤشرات إضافية
             result['market_analysis'] = self._analyze_market()
             
             return result
@@ -148,7 +123,6 @@ class PredictionSystem:
     
     def _analyze_market(self) -> Dict:
         """تحليل السوق الإضافي"""
-        # استخدام ScoreCalculator للتحليل
         score_calc = ScoreCalculator(self.data)
         scores = score_calc.calculate_all_scores()
         
