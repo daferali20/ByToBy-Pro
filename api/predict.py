@@ -6,8 +6,6 @@ from .score import ScoreCalculator
 from .random_forest import RandomForestModel
 from .xgboost_model import XGBoostModel
 from .lightgbm_model import LightGBMModel
-from .tensorflow_model import TensorFlowModel
-import joblib
 
 class PredictionSystem:
     """نظام التنبؤ بالأسعار باستخدام نماذج متعددة"""
@@ -28,8 +26,14 @@ class PredictionSystem:
             self.models['xgboost'] = XGBoostModel('classifier')
         if self.model_type == 'ensemble' or self.model_type == 'lightgbm':
             self.models['lightgbm'] = LightGBMModel('classifier')
-        if self.model_type == 'ensemble' or self.model_type == 'tensorflow':
-            self.models['tensorflow'] = TensorFlowModel('classifier')
+        
+        # محاولة تحميل TensorFlow إذا كان موجودًا
+        try:
+            from .tensorflow_model import TensorFlowModel
+            if self.model_type == 'ensemble' or self.model_type == 'tensorflow':
+                self.models['tensorflow'] = TensorFlowModel('classifier')
+        except ImportError:
+            print("TensorFlow غير متوفر. سيتم استخدام النماذج المتاحة فقط.")
     
     def prepare_features(self) -> pd.DataFrame:
         """تجهيز الميزات للتنبؤ"""
@@ -50,15 +54,20 @@ class PredictionSystem:
         training_results = {}
         
         for model_name, model in self.models.items():
-            print(f"Training {model_name}...")
-            
-            X_train, X_test, y_train, y_test = model.prepare_data(features, target)
-            
-            training_results[model_name] = model.train(X_train, y_train)
-            
-            eval_results = model.evaluate(X_test, y_test)
-            training_results[model_name]['evaluation'] = eval_results
-            
+            try:
+                print(f"Training {model_name}...")
+                
+                X_train, X_test, y_train, y_test = model.prepare_data(features, target)
+                
+                training_results[model_name] = model.train(X_train, y_train)
+                
+                eval_results = model.evaluate(X_test, y_test)
+                training_results[model_name]['evaluation'] = eval_results
+                
+            except Exception as e:
+                print(f"خطأ في تدريب {model_name}: {e}")
+                training_results[model_name] = {'error': str(e)}
+        
         return training_results
     
     def predict_future(self, features: pd.DataFrame) -> Dict:
@@ -66,18 +75,24 @@ class PredictionSystem:
         predictions = {}
         
         for model_name, model in self.models.items():
-            if model.is_fitted:
-                latest_features = features.iloc[-1:].values
-                scaled_features = model.scaler.transform(latest_features)
-                
-                pred = model.predict(scaled_features)[0]
-                proba = model.predict_proba(scaled_features)[0][1] if hasattr(model, 'predict_proba') else None
-                
-                predictions[model_name] = {
-                    'prediction': int(pred),
-                    'confidence': float(proba) if proba is not None else 0.5,
-                    'signal': 'BUY' if pred == 1 else 'SELL'
-                }
+            if hasattr(model, 'is_fitted') and model.is_fitted:
+                try:
+                    latest_features = features.iloc[-1:].values
+                    if hasattr(model, 'scaler'):
+                        scaled_features = model.scaler.transform(latest_features)
+                    else:
+                        scaled_features = latest_features
+                    
+                    pred = model.predict(scaled_features)[0]
+                    proba = model.predict_proba(scaled_features)[0] if hasattr(model, 'predict_proba') else None
+                    
+                    predictions[model_name] = {
+                        'prediction': int(pred),
+                        'confidence': float(proba) if proba is not None else 0.5,
+                        'signal': 'BUY' if pred == 1 else 'SELL'
+                    }
+                except Exception as e:
+                    print(f"خطأ في التنبؤ باستخدام {model_name}: {e}")
         
         return predictions
     
@@ -141,8 +156,11 @@ class PredictionSystem:
         os.makedirs(base_path, exist_ok=True)
         
         for model_name, model in self.models.items():
-            if model.is_fitted:
-                model.save_model(f"{base_path}{model_name}")
+            if hasattr(model, 'is_fitted') and model.is_fitted:
+                try:
+                    model.save_model(f"{base_path}{model_name}")
+                except Exception as e:
+                    print(f"خطأ في حفظ {model_name}: {e}")
     
     def load_models(self, base_path: str = 'models/'):
         """تحميل النماذج المحفوظة"""
@@ -150,5 +168,5 @@ class PredictionSystem:
             try:
                 model.load_model(f"{base_path}{model_name}")
                 print(f"Loaded {model_name}")
-            except:
-                print(f"Could not load {model_name}")
+            except Exception as e:
+                print(f"Could not load {model_name}: {e}")
