@@ -1,0 +1,15 @@
+ai/
+│
+├── __init__.py
+├── score.py                 # حساب الدرجة النهائية للسهم
+├── recommendation.py        # إنشاء التوصيات
+├── ranking.py               # ترتيب الأسهم
+├── pattern_score.py         # تقييم النماذج الفنية
+├── pattern_detector.py      # كشف النماذج (Double Top, Cup...)
+├── random_forest.py         # نموذج RandomForest
+├── xgboost_model.py         # نموذج XGBoost
+├── lightgbm_model.py        # نموذج LightGBM
+├── tensorflow_model.py      # نموذج TensorFlow
+├── train.py                 # تدريب النماذج
+├── predict.py               # التنبؤ باستخدام جميع النماذج
+└── features.py              # استخراج الخصائص (RSI, MACD, EMA...)
