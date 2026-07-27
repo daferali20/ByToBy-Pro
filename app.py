@@ -10,6 +10,8 @@ from pathlib import Path
 import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_autorefresh import st_autorefresh
+import pandas as pd
+import yfinance as yf
 
 # ============================================
 # Configuration handling
@@ -23,17 +25,88 @@ except ImportError:
         VERSION = "1.0.0"
         AUTO_REFRESH_SECONDS = 30
         THEME = "dark"
+        USE_REAL_DATA = True  # New setting to use real data
     
     config = Config()
+
+# ============================================
+# Real Data Functions
+# ============================================
+
+def get_real_market_data():
+    """Get real market data from Yahoo Finance"""
+    try:
+        # Get major indices
+        indices = {
+            "NASDAQ": "^IXIC",
+            "S&P 500": "^GSPC",
+            "Dow Jones": "^DJI",
+            "TASI": "^TASI"  # Saudi Tadawul
+        }
+        
+        market_data = {}
+        for name, symbol in indices.items():
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.fast_info
+                price = info.get("lastPrice", 0)
+                prev_close = info.get("previousClose", price)
+                change = ((price - prev_close) / prev_close * 100) if prev_close > 0 else 0
+                
+                market_data[name] = {
+                    "price": price,
+                    "change": change,
+                    "symbol": symbol
+                }
+            except:
+                # Fallback data if Yahoo fails
+                market_data[name] = {
+                    "price": 0,
+                    "change": 0,
+                    "symbol": symbol
+                }
+        
+        return market_data
+    except Exception as e:
+        st.error(f"❌ خطأ في تحميل بيانات السوق: {e}")
+        return None
+
+def get_real_top_stocks():
+    """Get real top stocks from Yahoo Finance"""
+    try:
+        # Popular stocks
+        symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX", 
+                   "JPM", "VTI", "2222.SR", "1120.SR", "7010.SR"]
+        
+        stocks_data = []
+        for symbol in symbols:
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.fast_info
+                price = info.get("lastPrice", 0)
+                prev_close = info.get("previousClose", price)
+                change = ((price - prev_close) / prev_close * 100) if prev_close > 0 else 0
+                
+                stocks_data.append({
+                    "symbol": symbol,
+                    "price": price,
+                    "change": change,
+                    "volume": info.get("lastVolume", 0)
+                })
+            except:
+                pass
+        
+        return stocks_data
+    except Exception as e:
+        st.error(f"❌ خطأ في تحميل بيانات الأسهم: {e}")
+        return []
 
 # ============================================
 # Functions
 # ============================================
 
 def check_package(package_name: str) -> str:
-    """
-    Check if a Python package is installed.
-    """
+    """Check if a Python package is installed."""
     try:
         __import__(package_name)
         return f"✅ {package_name} installed"
@@ -78,6 +151,24 @@ def load_css():
                     color: #94a3b8;
                     font-size: 1rem;
                 }
+                .real-data-badge {
+                    background: #22c55e;
+                    color: white;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+                .fallback-badge {
+                    background: #f59e0b;
+                    color: white;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
             </style>
             """, unsafe_allow_html=True)
     except Exception as e:
@@ -96,6 +187,22 @@ def init_session_state():
     
     if "selected_page" not in st.session_state:
         st.session_state.selected_page = "Dashboard"
+    
+    if "market_data" not in st.session_state:
+        st.session_state.market_data = None
+    
+    if "last_update" not in st.session_state:
+        st.session_state.last_update = None
+
+def get_market_status():
+    """Determine market status based on time"""
+    now = datetime.now()
+    # Simple logic: markets are open Monday-Friday 9:30 AM - 4:00 PM ET
+    # For simplicity, we'll just check if it's a weekday
+    if now.weekday() < 5:  # Monday = 0, Sunday = 6
+        return "🟢 مفتوح"
+    else:
+        return "🔴 مغلق"
 
 def display_sidebar():
     """Display sidebar navigation"""
@@ -106,6 +213,12 @@ def display_sidebar():
             <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 0.25rem;">الإصدار {config.VERSION}</p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Data source indicator
+        if hasattr(config, 'USE_REAL_DATA') and config.USE_REAL_DATA:
+            st.markdown('<span class="real-data-badge">✅ بيانات حقيقية</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="fallback-badge">⚠️ بيانات تجريبية</span>', unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -169,6 +282,9 @@ def display_sidebar():
         
         st.markdown("---")
         
+        # Update market status
+        st.session_state.market_status = get_market_status()
+        
         # Market status
         col1, col2 = st.columns(2)
         with col1:
@@ -176,7 +292,11 @@ def display_sidebar():
             st.markdown(f"{st.session_state.market_status}")
         with col2:
             st.markdown(f"**آخر تحديث:**")
-            st.markdown(f"{datetime.now().strftime('%H:%M:%S')}")
+            last_update = st.session_state.last_update
+            if last_update:
+                st.markdown(f"{last_update.strftime('%H:%M:%S')}")
+            else:
+                st.markdown("جاري التحميل...")
         
         # Auto refresh indicator
         if hasattr(config, 'AUTO_REFRESH_SECONDS') and config.AUTO_REFRESH_SECONDS > 0:
@@ -186,6 +306,7 @@ def display_sidebar():
         with st.expander("ℹ️ نظام", expanded=False):
             st.caption(f"🐍 Python {sys.version[:10]}")
             st.caption(f"📦 Streamlit {st.__version__}")
+            st.caption(f"📊 مصدر البيانات: {'Yahoo Finance (حقيقي)' if hasattr(config, 'USE_REAL_DATA') and config.USE_REAL_DATA else 'تجريبي'}")
     
     return selected
 
@@ -196,20 +317,59 @@ def display_header():
     st.markdown("---")
 
 def display_top_metrics():
-    """Display top market metrics"""
+    """Display real top market metrics"""
+    # Get real market data
+    if hasattr(config, 'USE_REAL_DATA') and config.USE_REAL_DATA:
+        market_data = get_real_market_data()
+        st.session_state.market_data = market_data
+        st.session_state.last_update = datetime.now()
+    else:
+        # Fallback sample data
+        market_data = {
+            "NASDAQ": {"price": 19245, "change": 1.12},
+            "S&P 500": {"price": 6412, "change": 0.84},
+            "Dow Jones": {"price": 44180, "change": 0.51},
+            "TASI": {"price": 12480, "change": 0.67}
+        }
+    
     col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric("NASDAQ", "19,245", "+1.12%")
-    
-    with col2:
-        st.metric("S&P 500", "6,412", "+0.84%")
-    
-    with col3:
-        st.metric("Dow Jones", "44,180", "+0.51%")
-    
-    with col4:
-        st.metric("TASI", "12,480", "+0.67%")
+    if market_data:
+        with col1:
+            if "NASDAQ" in market_data:
+                price = market_data["NASDAQ"].get("price", 0)
+                change = market_data["NASDAQ"].get("change", 0)
+                st.metric("NASDAQ", f"{price:,.0f}", f"{change:+.2f}%")
+            else:
+                st.metric("NASDAQ", "N/A", "N/A")
+        
+        with col2:
+            if "S&P 500" in market_data:
+                price = market_data["S&P 500"].get("price", 0)
+                change = market_data["S&P 500"].get("change", 0)
+                st.metric("S&P 500", f"{price:,.0f}", f"{change:+.2f}%")
+            else:
+                st.metric("S&P 500", "N/A", "N/A")
+        
+        with col3:
+            if "Dow Jones" in market_data:
+                price = market_data["Dow Jones"].get("price", 0)
+                change = market_data["Dow Jones"].get("change", 0)
+                st.metric("Dow Jones", f"{price:,.0f}", f"{change:+.2f}%")
+            else:
+                st.metric("Dow Jones", "N/A", "N/A")
+        
+        with col4:
+            if "TASI" in market_data:
+                price = market_data["TASI"].get("price", 0)
+                change = market_data["TASI"].get("change", 0)
+                st.metric("TASI", f"{price:,.0f}", f"{change:+.2f}%")
+            else:
+                st.metric("TASI", "N/A", "N/A")
+    else:
+        for col in [col1, col2, col3, col4]:
+            with col:
+                st.metric("جاري التحميل...", "---", "---")
     
     st.markdown("---")
 
@@ -217,7 +377,8 @@ def navigate_to_page(page_name: str):
     """Navigate to a specific page"""
     try:
         # Remove emojis from page name for file path
-        clean_name = page_name.split(" ")[-1] if " " in page_name else page_name
+        parts = page_name.split(" ")
+        clean_name = parts[-1] if parts else page_name
         
         # Map display names to file names
         page_map = {
@@ -241,13 +402,12 @@ def navigate_to_page(page_name: str):
             st.switch_page(f"pages/{file_name}.py")
         else:
             st.warning(f"⚠️ الصفحة {page_name} غير موجودة")
-            st.info(f"البحث عن: pages/{file_name}.py")
             
             # Try to find similar pages
             pages_dir = Path("pages")
             if pages_dir.exists():
                 available_pages = [p.stem for p in pages_dir.glob("*.py")]
-                st.write("الصفحات المتاحة:", available_pages)
+                st.info(f"الصفحات المتاحة: {', '.join(available_pages)}")
     
     except Exception as e:
         st.error(f"❌ خطأ في التنقل: {str(e)}")
@@ -255,7 +415,7 @@ def navigate_to_page(page_name: str):
 def display_footer():
     """Display footer"""
     st.markdown("---")
-    st.caption(f"© 2026 {config.APP_NAME} — Powered by AI • Polygon • Finnhub • Yahoo Finance")
+    st.caption(f"© 2026 {config.APP_NAME} — Powered by AI • Data: Yahoo Finance")
 
 # ============================================
 # Main App
@@ -277,10 +437,6 @@ def main():
             key="market_refresh"
         )
     
-    # Check packages (optional - uncomment if needed)
-    # st.write(check_package("streamlit_option_menu"))
-    # st.write(check_package("streamlit_autorefresh"))
-    
     # Set page config
     st.set_page_config(
         page_title=f"{config.APP_NAME} v{config.VERSION}",
@@ -295,7 +451,7 @@ def main():
     # Header
     display_header()
     
-    # Top metrics
+    # Top metrics with real data
     display_top_metrics()
     
     # Navigation
@@ -305,9 +461,8 @@ def main():
             st.session_state.selected_page = selected
             navigate_to_page(selected)
         else:
-            # If no page selected or same page, show Dashboard by default
+            # If no page selected or same page, show Dashboard content
             if selected == "📊 Dashboard" or not selected:
-                # Import and show dashboard content directly
                 try:
                     from pages.Dashboard import main as dashboard_main
                     dashboard_main()
@@ -318,7 +473,10 @@ def main():
                         <h2 style="color: #667eea;">📊 Dashboard</h2>
                         <p style="color: #94a3b8;">مرحباً بك في منصة ByToBy Pro</p>
                         <p style="color: #64748b; font-size: 0.9rem;">
-                            اختر صفحة من القائمة الجانبية للبدء
+                            استخدم القائمة الجانبية للتنقل بين الصفحات
+                        </p>
+                        <p style="color: #22c55e; font-size: 0.8rem;">
+                            ✅ استخدام البيانات الحقيقية من Yahoo Finance
                         </p>
                     </div>
                     """, unsafe_allow_html=True)
