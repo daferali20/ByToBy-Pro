@@ -110,7 +110,6 @@ def remove_stock_from_portfolio(entry_id):
     """حذف سهم من المحفظة"""
     entry = next((e for e in st.session_state.portfolio if e['id'] == entry_id), None)
     if entry:
-        # إضافة إلى سجل المعاملات (بيع)
         add_transaction('sell', entry['symbol'], entry['shares'], entry['current_price'], datetime.now().strftime('%Y-%m-%d'))
         st.session_state.portfolio = [e for e in st.session_state.portfolio if e['id'] != entry_id]
         return True
@@ -185,6 +184,26 @@ def get_worst_performers(n=3):
     sorted_portfolio = sorted(st.session_state.portfolio, key=lambda x: x['gain_loss_percent'])
     return sorted_portfolio[:n]
 
+def get_signal_badge(signal):
+    """الحصول على علامة HTML للإشارة"""
+    badges = {
+        'شراء قوي': '<span style="background-color: #00ff00; color: black; padding: 2px 8px; border-radius: 12px; font-weight: bold;">شراء قوي</span>',
+        'شراء': '<span style="background-color: #90ee90; color: black; padding: 2px 8px; border-radius: 12px;">شراء</span>',
+        'احتفاظ': '<span style="background-color: #ffff00; color: black; padding: 2px 8px; border-radius: 12px;">احتفاظ</span>',
+        'بيع': '<span style="background-color: #ff6347; color: white; padding: 2px 8px; border-radius: 12px;">بيع</span>',
+        'بيع قوي': '<span style="background-color: #ff0000; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold;">بيع قوي</span>'
+    }
+    return badges.get(signal, signal)
+
+def format_gain_loss(val):
+    """تنسيق قيمة الربح/الخسارة مع تلوين"""
+    if val > 0:
+        return f'<span style="color: #00ff00; font-weight: bold;">+${val:,.2f}</span>'
+    elif val < 0:
+        return f'<span style="color: #ff4444; font-weight: bold;">-${abs(val):,.2f}</span>'
+    else:
+        return f'<span style="color: #ffffff;">${val:,.2f}</span>'
+
 # ============================================
 # واجهة المستخدم
 # ============================================
@@ -222,7 +241,6 @@ def main():
                     current_price = stock_data['current_price']
                     st.info(f"💰 السعر الحالي: ${current_price:,.2f}")
                     
-                    # حساب القيمة المتوقعة
                     if shares > 0:
                         total_cost = shares * purchase_price
                         current_value = shares * current_price
@@ -232,13 +250,11 @@ def main():
             submitted = st.form_submit_button("➕ إضافة إلى المحفظة", use_container_width=True, type="primary")
             
             if submitted and symbol:
-                # التحقق من صحة البيانات
                 if shares <= 0:
                     st.error("❌ يجب أن يكون عدد الأسهم أكبر من 0")
                 elif purchase_price <= 0:
                     st.error("❌ يجب أن يكون سعر الشراء أكبر من 0")
                 else:
-                    # إضافة السهم
                     entry = add_stock_to_portfolio(
                         symbol=symbol,
                         shares=shares,
@@ -305,52 +321,53 @@ def main():
         st.divider()
         
         # ============================================
-        # 2. جدول المحفظة
+        # 2. جدول المحفظة (باستخدام HTML للتلوين)
         # ============================================
         st.subheader("📋 تفاصيل المحفظة")
         
         # إنشاء DataFrame للعرض
         portfolio_df = pd.DataFrame(st.session_state.portfolio)
         
-        # تنسيق DataFrame
+        # تنسيق DataFrame باستخدام HTML
         display_df = portfolio_df.copy()
         display_df['purchase_price'] = display_df['purchase_price'].apply(lambda x: f"${x:,.2f}")
         display_df['current_price'] = display_df['current_price'].apply(lambda x: f"${x:,.2f}")
         display_df['total_cost'] = display_df['total_cost'].apply(lambda x: f"${x:,.2f}")
         display_df['current_value'] = display_df['current_value'].apply(lambda x: f"${x:,.2f}")
-        display_df['gain_loss'] = display_df['gain_loss'].apply(lambda x: f"${x:,.2f}")
-        display_df['gain_loss_percent'] = display_df['gain_loss_percent'].apply(lambda x: f"{x:.1f}%")
+        display_df['gain_loss'] = display_df.apply(lambda row: format_gain_loss(row['gain_loss']), axis=1)
+        display_df['gain_loss_percent'] = display_df['gain_loss_percent'].apply(
+            lambda x: f'<span style="color: {"#00ff00" if x > 0 else "#ff4444" if x < 0 else "#ffffff"};">{x:.1f}%</span>'
+        )
         
-        # إضافة تلوين للربح/الخسارة
-        def color_gain_loss(val):
-            if isinstance(val, str) and val.startswith('$'):
-                num = float(val.replace('$', '').replace(',', ''))
-                if num > 0:
-                    return 'background-color: #00ff00; color: black'
-                elif num < 0:
-                    return 'background-color: #ff0000; color: white'
-            return ''
+        # إضافة عمود الإجراءات
+        display_df['actions'] = display_df['id'].apply(
+            lambda x: f'<button onclick="alert(\'حذف السهم {x}\')">🗑️</button>'
+        )
         
-        styled_df = display_df.style.applymap(color_gain_loss, subset=['gain_loss'])
+        # عرض الجدول مع HTML
+        st.markdown("""
+        <style>
+        .dataframe td {
+            white-space: nowrap;
+            padding: 8px 12px;
+        }
+        .dataframe th {
+            background-color: #1e1e1e;
+            color: white;
+            padding: 10px 12px;
+            text-align: center;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # اختيار الأعمدة للعرض
+        columns_to_show = ['symbol', 'shares', 'purchase_price', 'current_price', 
+                          'total_cost', 'current_value', 'gain_loss', 'gain_loss_percent', 'purchase_date']
+        
+        display_df = display_df[columns_to_show]
         
         # عرض الجدول
-        st.dataframe(
-            display_df[['symbol', 'shares', 'purchase_price', 'current_price', 
-                       'total_cost', 'current_value', 'gain_loss', 'gain_loss_percent', 'purchase_date']],
-            use_container_width=True,
-            column_config={
-                'symbol': 'السهم',
-                'shares': 'العدد',
-                'purchase_price': 'سعر الشراء',
-                'current_price': 'السعر الحالي',
-                'total_cost': 'التكلفة الإجمالية',
-                'current_value': 'القيمة الحالية',
-                'gain_loss': 'الربح/الخسارة',
-                'gain_loss_percent': 'نسبة الربح/الخسارة',
-                'purchase_date': 'تاريخ الشراء'
-            },
-            height=400
-        )
+        st.write(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
         
         # أزرار إدارة المحفظة
         col1, col2, col3 = st.columns([1, 1, 2])
@@ -380,7 +397,7 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # توزيع الأسهم حسب القطاع (بيانات تجريبية)
+            # توزيع الأسهم حسب القطاع
             sectors = {
                 'AAPL': 'التكنولوجيا',
                 'MSFT': 'التكنولوجيا',
@@ -507,21 +524,18 @@ def main():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            # تنويع المحفظة
             if len(st.session_state.portfolio) < 3:
                 st.info("📊 **تنويع المحفظة**\n\nيوصى بتنويع استثماراتك عبر قطاعات متعددة لتقليل المخاطر.")
             else:
                 st.success("✅ **تنويع جيد**\n\nمحفظتك متنوعة عبر عدة قطاعات.")
         
         with col2:
-            # إعادة التوازن
             if summary['total_gain_loss_percent'] > 20:
                 st.warning("⚖️ **إعادة التوازن**\n\nقد يكون من الجيد إعادة توازن محفظتك لجني الأرباح.")
             else:
                 st.info("⚖️ **توازن جيد**\n\nأداء محفظتك متوازن.")
         
         with col3:
-            # تحمل المخاطر
             if summary['total_gain_loss_percent'] < -10:
                 st.error("⚠️ **مخاطر عالية**\n\nقد يكون من الحكمة تقليل المخاطر في محفظتك.")
             else:
