@@ -4,10 +4,9 @@ ByToBy Pro - Yahoo Finance API Layer
 """
 
 from __future__ import annotations
-
+from datetime import datetime
 import time
 from typing import Any, Optional, Dict, List
-from datetime import datetime
 import pandas as pd
 import requests
 
