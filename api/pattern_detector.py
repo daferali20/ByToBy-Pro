@@ -522,4 +522,109 @@ class PatternDetector:
                 elif last_value < 0:
                     self.patterns.append(PatternResult(
                         name=pattern_name,
-                        detected
+                        detected=True,
+                        strength=0.7,
+                        direction='bearish'
+                    ))
+                    
+        except ImportError:
+            print("TA-Lib غير مثبت. يتم استخدام الأنماط الأساسية فقط.")
+    
+    def detect_gaps(self) -> None:
+        """اكتشاف الفجوات السعرية"""
+        for i in range(1, len(self.data)):
+            # فجوة صاعدة
+            if self.data['low'].iloc[i] > self.data['high'].iloc[i-1]:
+                self.patterns.append(PatternResult(
+                    name='Breakaway Gap (Up)',
+                    detected=True,
+                    strength=0.6,
+                    direction='bullish'
+                ))
+            
+            # فجوة هابطة
+            elif self.data['high'].iloc[i] < self.data['low'].iloc[i-1]:
+                self.patterns.append(PatternResult(
+                    name='Breakaway Gap (Down)',
+                    detected=True,
+                    strength=0.6,
+                    direction='bearish'
+                ))
+    
+    def detect_pivot_points(self) -> None:
+        """اكتشاف نقاط المحورية"""
+        window = 5
+        for i in range(window, len(self.data) - window):
+            # نقطة محورية عالية
+            if (self.data['high'].iloc[i] > self.data['high'].iloc[i-window:i].max() and
+                self.data['high'].iloc[i] > self.data['high'].iloc[i+1:i+window+1].max()):
+                
+                self.patterns.append(PatternResult(
+                    name='Pivot High',
+                    detected=True,
+                    strength=0.5,
+                    direction='bearish'
+                ))
+            
+            # نقطة محورية منخفضة
+            if (self.data['low'].iloc[i] < self.data['low'].iloc[i-window:i].min() and
+                self.data['low'].iloc[i] < self.data['low'].iloc[i+1:i+window+1].min()):
+                
+                self.patterns.append(PatternResult(
+                    name='Pivot Low',
+                    detected=True,
+                    strength=0.5,
+                    direction='bullish'
+                ))
+    
+    def detect_support_resistance(self) -> None:
+        """اكتشاف مستويات الدعم والمقاومة"""
+        window = 20
+        if len(self.data) > window:
+            # مستويات المقاومة (قمم متكررة)
+            highs = self.data['high'].values
+            for i in range(window, len(highs) - window):
+                if highs[i] == max(highs[i-window:i+window]):
+                    self.patterns.append(PatternResult(
+                        name='Resistance Level',
+                        detected=True,
+                        strength=0.5,
+                        direction='bearish'
+                    ))
+            
+            # مستويات الدعم (قيعان متكررة)
+            lows = self.data['low'].values
+            for i in range(window, len(lows) - window):
+                if lows[i] == min(lows[i-window:i+window]):
+                    self.patterns.append(PatternResult(
+                        name='Support Level',
+                        detected=True,
+                        strength=0.5,
+                        direction='bullish'
+                    ))
+    
+    def _find_local_extrema(self, series: pd.Series, mode: str = 'max', order: int = 5) -> List[Tuple[int, float]]:
+        """إيجاد النقاط القصوى المحلية"""
+        extrema = []
+        
+        for i in range(order, len(series) - order):
+            if mode == 'max':
+                if series.iloc[i] == series.iloc[i-order:i+order+1].max():
+                    extrema.append((i, series.iloc[i]))
+            else:  # min
+                if series.iloc[i] == series.iloc[i-order:i+order+1].min():
+                    extrema.append((i, series.iloc[i]))
+        
+        return extrema
+    
+    def get_pattern_summary(self) -> Dict[str, int]:
+        """الحصول على ملخص للنماذج المكتشفة"""
+        summary = {
+            'total_patterns': len(self.patterns),
+            'bullish': sum(1 for p in self.patterns if p.direction == 'bullish'),
+            'bearish': sum(1 for p in self.patterns if p.direction == 'bearish'),
+            'neutral': sum(1 for p in self.patterns if p.direction == 'neutral'),
+            'patterns': [{'name': p.name, 'direction': p.direction, 'strength': p.strength} 
+                        for p in self.patterns if p.detected]
+        }
+        return summary
