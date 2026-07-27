@@ -3,7 +3,7 @@
 ByToBy Pro - API Package
 """
 
-from .yahoo import (
+from .yahoo_api import (
     YahooAPI,
     get_company_info,
     get_price,
