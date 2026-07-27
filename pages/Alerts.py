@@ -180,6 +180,12 @@ def main():
             ["سعر السهم", "تغير النسبة", "حجم التداول", "نموذج فني", "توصية AI"]
         )
         
+        # متغيرات التخزين المؤقتة للإدخالات
+        symbol = ""
+        condition_code = ""
+        target_price = 0.0
+        note_text = ""
+        
         if alert_type in ["سعر السهم", "تغير النسبة", "حجم التداول"]:
             symbol = st.text_input("رمز السهم", "AAPL").upper()
             
@@ -209,7 +215,7 @@ def main():
             )
             condition_code = 'pattern'
             target_price = 0
-            note = f"نموذج {pattern}"
+            note_text = f"نموذج {pattern}"
         
         else:  # توصية AI
             symbol = st.text_input("رمز السهم", "AAPL").upper()
@@ -219,10 +225,10 @@ def main():
             )
             condition_code = 'recommendation'
             target_price = 0
-            note = f"توصية {recommendation}"
+            note_text = f"توصية {recommendation}"
         
         # ملاحظات إضافية
-        note = st.text_area("ملاحظات إضافية (اختياري)", note if 'note' not in locals() else "")
+        note = st.text_area("ملاحظات إضافية (اختياري)", note_text if note_text else "")
         
         # زر إنشاء التنبيه
         if st.button("🔔 إنشاء تنبيه", use_container_width=True, type="primary"):
@@ -232,7 +238,7 @@ def main():
                     symbol=symbol,
                     condition=condition_code,
                     target_price=target_price,
-                    note=note
+                    note=note if note else note_text
                 )
                 st.success(f"✅ تم إنشاء تنبيه لـ {symbol}")
                 st.rerun()
