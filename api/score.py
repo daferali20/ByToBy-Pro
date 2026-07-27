@@ -1,20 +1,14 @@
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Union
-from features import TechnicalFeatures
-from pattern_detector import PatternDetector
-from pattern_score import PatternScorer
+from typing import Dict, List, Optional
+from .features import TechnicalFeatures
+from .pattern_detector import PatternDetector
+from .pattern_score import PatternScorer
 
 class ScoreCalculator:
     """حساب النتيجة النهائية للتداول"""
     
     def __init__(self, data: pd.DataFrame):
-        """
-        تهيئة حاسبة النتائج
-        
-        Args:
-            data: DataFrame يحتوي على بيانات OHLCV
-        """
         self.data = data
         self.technical_features = None
         self.patterns = None
@@ -22,15 +16,12 @@ class ScoreCalculator:
         
     def calculate_all_scores(self) -> Dict[str, float]:
         """حساب جميع أنواع النتائج"""
-        # استخراج المؤشرات الفنية
         tech_features = TechnicalFeatures(self.data)
         self.technical_features = tech_features.extract_all_features()
         
-        # اكتشاف النماذج
         pattern_detector = PatternDetector(self.data)
         self.patterns = pattern_detector.detect_all_patterns()
         
-        # حساب النتائج
         self.scores = {
             'technical_score': self._calculate_technical_score(),
             'pattern_score': self._calculate_pattern_score(),
@@ -40,7 +31,6 @@ class ScoreCalculator:
             'overall_score': 0.0
         }
         
-        # حساب النتيجة الإجمالية
         self.scores['overall_score'] = self._calculate_overall_score()
         
         return self.scores
@@ -50,38 +40,33 @@ class ScoreCalculator:
         if self.technical_features is None:
             return 50.0
             
-        score = 50.0  # قيمة محايدة
+        score = 50.0
         latest = self.technical_features.iloc[-1]
         
-        # RSI
         if 'rsi' in latest and not pd.isna(latest['rsi']):
             if latest['rsi'] < 30:
-                score += 10  # ذروة بيع
+                score += 10
             elif latest['rsi'] > 70:
-                score -= 10  # ذروة شراء
+                score -= 10
         
-        # MACD
         if 'macd' in latest and 'macd_signal' in latest and not pd.isna(latest['macd']):
             if latest['macd'] > latest['macd_signal']:
                 score += 5
             else:
                 score -= 5
         
-        # Bollinger Bands
         if 'bb_position' in latest and not pd.isna(latest['bb_position']):
             if latest['bb_position'] < 0.2:
                 score += 8
             elif latest['bb_position'] > 0.8:
                 score -= 8
         
-        # ADX (قوة الاتجاه)
         if 'adx' in latest and not pd.isna(latest['adx']):
             if latest['adx'] > 25:
                 score += 5
             else:
                 score -= 5
         
-        # MA Position
         if 'sma_200' in latest and not pd.isna(latest['sma_200']):
             current_price = self.data['close'].iloc[-1]
             if current_price > latest['sma_200']:
@@ -115,7 +100,6 @@ class ScoreCalculator:
             elif latest_volume < avg_volume * 0.5:
                 score -= 10
             
-            # اتجاه الحجم
             volume_trend = volume.iloc[-5:].mean() / volume.iloc[-20:-5].mean()
             if volume_trend > 1.2:
                 score += 10
@@ -131,21 +115,18 @@ class ScoreCalculator:
         if len(self.data) > 20:
             close = self.data['close']
             
-            # الزخم قصير المدى
             short_momentum = (close.iloc[-1] / close.iloc[-5] - 1) * 100
             if short_momentum > 2:
                 score += 10
             elif short_momentum < -2:
                 score -= 10
             
-            # الزخم متوسط المدى
             medium_momentum = (close.iloc[-1] / close.iloc[-20] - 1) * 100
             if medium_momentum > 5:
                 score += 8
             elif medium_momentum < -5:
                 score -= 8
             
-            # ROC (معدل التغيير)
             roc = (close.iloc[-1] / close.iloc[-10] - 1) * 100
             if roc > 3:
                 score += 5
@@ -160,14 +141,13 @@ class ScoreCalculator:
         
         if len(self.data) > 20:
             returns = self.data['close'].pct_change()
-            volatility = returns.std() * np.sqrt(252)  # التقلب السنوي
+            volatility = returns.std() * np.sqrt(252)
             
-            if volatility < 0.15:  # تقلب منخفض
+            if volatility < 0.15:
                 score += 5
-            elif volatility > 0.30:  # تقلب مرتفع
+            elif volatility > 0.30:
                 score -= 5
             
-            # ATR (متوسط المدى الحقيقي)
             high = self.data['high']
             low = self.data['low']
             close = self.data['close']
@@ -181,9 +161,9 @@ class ScoreCalculator:
             avg_price = close.iloc[-20:].mean()
             atr_percent = (atr / avg_price) * 100
             
-            if atr_percent < 1:  # تقلب منخفض جدًا
+            if atr_percent < 1:
                 score += 8
-            elif atr_percent > 5:  # تقلب مرتفع جدًا
+            elif atr_percent > 5:
                 score -= 8
         
         return np.clip(score, 0, 100)
@@ -235,7 +215,6 @@ class ScoreCalculator:
     
     def _calculate_confidence(self) -> float:
         """حساب مستوى الثقة في النتيجة"""
-        # بناءً على تناغم المؤشرات المختلفة
         scores = [v for k, v in self.scores.items() if k != 'overall_score']
         if not scores:
             return 0.0
@@ -243,8 +222,7 @@ class ScoreCalculator:
         mean_score = np.mean(scores)
         std_score = np.std(scores)
         
-        # كلما كان الانحراف المعياري أقل، زادت الثقة
-        max_std = 20  # أقصى انحراف معياري محتمل
-        confidence = 1 - min(std_score / max_std, 0.5)  # 0.5-1.0
+        max_std = 20
+        confidence = 1 - min(std_score / max_std, 0.5)
         
         return float(confidence)
