@@ -1,6 +1,7 @@
+# api/pattern_score.py
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pattern_detector import PatternDetector, PatternResult
 
 class PatternScorer:
@@ -85,5 +86,35 @@ class PatternScorer:
             'name': p.name,
             'strength': p.strength,
             'direction': p.direction,
-            'score': p.strength * self.weights.get(p.name, self.weights['default']) * 100
+            'score': p.strength * self.weights.get(p.name, self.weights['default']) * 100,
+            'confidence': p.confidence
         } for p in sorted_patterns[:top_n]]
+
+
+# دالة مساعدة للاستيراد المباشر
+def pattern_score(data: pd.DataFrame) -> Tuple[float, Dict]:
+    """
+    دالة رئيسية لحساب درجة النمط
+    
+    Args:
+        data: بيانات OHLCV
+        
+    Returns:
+        float: درجة النمط (0-100)
+        Dict: تفاصيل النتائج
+    """
+    detector = PatternDetector()
+    patterns = detector.detect_patterns(data)
+    
+    scorer = PatternScorer(patterns)
+    score = scorer.calculate_pattern_score()
+    
+    details = {
+        'score': score,
+        'patterns_detected': sum(1 for p in patterns if p.detected),
+        'total_patterns': len(patterns),
+        'best_patterns': scorer.get_best_patterns(),
+        'contributions': scorer.get_pattern_contribution()
+    }
+    
+    return score, details
