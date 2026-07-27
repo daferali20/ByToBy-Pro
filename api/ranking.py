@@ -112,4 +112,118 @@ class RankingSystem:
         else:
             return 50.0
     
-    def _calculate_trend_metric
+    def _calculate_trend_metric(self) -> float:
+        """حساب مقياس الاتجاه"""
+        if len(self.data) < 50:
+            return 50.0
+        
+        close = self.data['close']
+        
+        # حساب ميل الاتجاه
+        x = np.arange(len(close))
+        slope = np.polyfit(x[-50:], close.iloc[-50:], 1)[0]
+        
+        # حساب R² لقوة الاتجاه
+        slope_normalized = slope / close.iloc[-50:].mean()
+        
+        # تحويل الميل إلى درجة 0-100
+        if slope_normalized > 0.01:
+            trend_score = 70 + min(slope_normalized * 1000, 30)
+        elif slope_normalized < -0.01:
+            trend_score = 30 + max(slope_normalized * 1000, -30)
+        else:
+            trend_score = 50
+        
+        return max(0, min(100, trend_score))
+    
+    def _calculate_volatility_metric(self) -> float:
+        """حساب مقياس التقلب"""
+        if len(self.data) < 20:
+            return 50.0
+        
+        returns = self.data['close'].pct_change()
+        volatility = returns.std() * np.sqrt(252)
+        
+        # تسجيل التقلب (التقلب المنخفض أفضل للصفقات طويلة المدى)
+        if volatility < 0.15:
+            return 70
+        elif volatility < 0.25:
+            return 50
+        elif volatility < 0.35:
+            return 30
+        else:
+            return 10
+    
+    def _calculate_pattern_quality(self) -> float:
+        """حساب جودة النماذج الفنية"""
+        pattern_recommendations = self.recommendations.get('pattern_recommendations', [])
+        
+        if not pattern_recommendations:
+            return 50.0
+        
+        # حساب متوسط جودة النماذج
+        total_quality = 0
+        for pattern in pattern_recommendations[:5]:  # أعلى 5 نماذج
+            total_quality += pattern['confidence'] * 100
+        
+        average_quality = total_quality / len(pattern_recommendations[:5])
+        
+        return average_quality
+    
+    def _calculate_overall_rank_score(self) -> float:
+        """حساب نتيجة الترتيب الإجمالية"""
+        weights = {
+            'signal_quality': 0.25,
+            'risk_reward': 0.20,
+            'momentum': 0.15,
+            'volume': 0.15,
+            'trend': 0.15,
+            'volatility': 0.05,
+            'pattern_quality': 0.05
+        }
+        
+        total_score = sum(self.rank_metrics[key] * weight 
+                         for key, weight in weights.items())
+        
+        return min(100, total_score)
+    
+    def _get_rank_grade(self, score: float) -> str:
+        """الحصول على درجة الترتيب"""
+        if score >= 85:
+            return 'A+'
+        elif score >= 75:
+            return 'A'
+        elif score >= 65:
+            return 'B+'
+        elif score >= 55:
+            return 'B'
+        elif score >= 45:
+            return 'C'
+        elif score >= 35:
+            return 'D'
+        else:
+            return 'F'
+    
+    def get_ranking_summary(self) -> Dict:
+        """الحصول على ملخص الترتيب"""
+        ranking = self.rank_trade()
+        summary = {
+            'rank_score': ranking['overall_rank'],
+            'rank_grade': ranking['rank_grade'],
+            'recommendation': ranking['recommendation'],
+            'confidence': ranking['confidence'],
+            'signal_quality': ranking['metrics']['signal_quality'],
+            'best_metric': max(ranking['metrics'].items(), key=lambda x: x[1])[0],
+            'worst_metric': min(ranking['metrics'].items(), key=lambda x: x[1])[0]
+        }
+        
+        # إضافة نصائح للتحسين
+        improvement_areas = []
+        for metric, score in ranking['metrics'].items():
+            if score < 50:
+                improvement_areas.append(metric)
+        
+        if improvement_areas:
+            summary['improvement_areas'] = improvement_areas
+        
+        return summary
