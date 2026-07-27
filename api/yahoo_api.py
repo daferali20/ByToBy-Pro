@@ -242,41 +242,16 @@ class YahooAPI:
                 "volume": price.get("volume", 0)
             })
         return results
+    
+    def validate_symbol(self, symbol: str) -> bool:
+        """Validate if symbol exists."""
+        try:
+            info = self.get_company_info(symbol)
+            return info.get("source") is not None
+        except:
+            return False
 
 
-# =====================================================
-# Convenience Functions
-# =====================================================
-
-_api = None
-
-def get_api():
-    global _api
-    if _api is None:
-        _api = YahooAPI()
-    return _api
-
-def get_company_info(symbol: str) -> Dict[str, Any]:
-    return get_api().get_company_info(symbol)
-
-def get_price(symbol: str) -> Dict[str, Any]:
-    return get_api().get_price(symbol)
-
-def get_history(symbol: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame:
-    return get_api().get_history(symbol, period, interval)
-
-def get_dashboard_data(symbol: str) -> Dict[str, Any]:
-    return get_api().get_dashboard_data(symbol)
-
-def get_portfolio_data(symbols: List[str]) -> List[Dict[str, Any]]:
-    return get_api().get_portfolio_data(symbols)
-
-def validate_symbol(symbol: str) -> bool:
-    try:
-        info = get_company_info(symbol)
-        return info.get("source") is not None
-    except:
-        return False
 # =====================================================
 # Singleton Instance
 # =====================================================
@@ -284,43 +259,39 @@ def validate_symbol(symbol: str) -> bool:
 _api = YahooAPI()
 
 
-def get_price(symbol: str):
+def get_api() -> YahooAPI:
+    """Get the singleton API instance."""
+    global _api
+    if _api is None:
+        _api = YahooAPI()
+    return _api
+
+
+def get_price(symbol: str) -> Dict[str, Any]:
+    """Convenience function to get price."""
     return _api.get_price(symbol)
 
 
-def get_history(symbol: str, period="6mo", interval="1d"):
+def get_history(symbol: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame:
+    """Convenience function to get history."""
     return _api.get_history(symbol, period, interval)
 
 
-def get_company_info(symbol: str):
+def get_company_info(symbol: str) -> Dict[str, Any]:
+    """Convenience function to get company info."""
     return _api.get_company_info(symbol)
 
 
-def validate_symbol(symbol: str):
+def validate_symbol(symbol: str) -> bool:
+    """Convenience function to validate symbol."""
     return _api.validate_symbol(symbol)
 
 
-def get_dashboard_data(symbol: str):
-    return {
-        "company": get_company_info(symbol),
-        "price": get_price(symbol),
-        "history": get_history(symbol).to_dict("records"),
-        "source": "yahoo",
-        "last_updated": datetime.now().isoformat()
-    }
+def get_dashboard_data(symbol: str) -> Dict[str, Any]:
+    """Convenience function to get dashboard data."""
+    return _api.get_dashboard_data(symbol)
 
 
-def get_portfolio_data(symbols: list[str]):
-    data = []
-
-    for symbol in symbols:
-        try:
-            data.append({
-                "symbol": symbol,
-                "company": get_company_info(symbol),
-                "price": get_price(symbol)
-            })
-        except Exception:
-            pass
-
-    return data
+def get_portfolio_data(symbols: List[str]) -> List[Dict[str, Any]]:
+    """Convenience function to get portfolio data."""
+    return _api.get_portfolio_data(symbols)
