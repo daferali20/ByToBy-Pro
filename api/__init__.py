@@ -1,6 +1,9 @@
 """
 ByToBy Pro - API Package
 """
+from .pattern_score import pattern_score
+
+__all__ = ["pattern_score"]
 
 from .yahoo_api import (
     YahooAPI,
