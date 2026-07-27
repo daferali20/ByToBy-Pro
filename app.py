@@ -19,7 +19,16 @@ def check_package(package_name: str) -> str:
         return f"✅ {package_name} installed"
     except ImportError:
         return f"❌ {package_name} NOT installed"
+#import streamlit as st
 
+def load_css():
+    """Load custom CSS styles"""
+    with open('.streamlit/styles.css', 'r', encoding='utf-8') as f:
+        css = f.read()
+        st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+
+# استدعاء الدالة في بداية الصفحة
+load_css()
 # التحقق من المكتبات المهمة
 st.write(check_package("streamlit_option_menu"))
 st.write(check_package("streamlit_autorefresh"))
