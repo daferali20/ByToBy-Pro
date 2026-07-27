@@ -278,3 +278,50 @@ def validate_symbol(symbol: str) -> bool:
         return info.get("source") is not None
     except:
         return False
+# =====================================================
+# Singleton Instance
+# =====================================================
+
+_api = YahooAPI()
+
+
+def get_price(symbol: str):
+    return _api.get_price(symbol)
+
+
+def get_history(symbol: str, period="6mo", interval="1d"):
+    return _api.get_history(symbol, period, interval)
+
+
+def get_company_info(symbol: str):
+    return _api.get_company_info(symbol)
+
+
+def validate_symbol(symbol: str):
+    return _api.validate_symbol(symbol)
+
+
+def get_dashboard_data(symbol: str):
+    return {
+        "company": get_company_info(symbol),
+        "price": get_price(symbol),
+        "history": get_history(symbol).to_dict("records"),
+        "source": "yahoo",
+        "last_updated": datetime.now().isoformat()
+    }
+
+
+def get_portfolio_data(symbols: list[str]):
+    data = []
+
+    for symbol in symbols:
+        try:
+            data.append({
+                "symbol": symbol,
+                "company": get_company_info(symbol),
+                "price": get_price(symbol)
+            })
+        except Exception:
+            pass
+
+    return data
