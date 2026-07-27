@@ -1,7 +1,12 @@
 # pages/Smart_Screener.py
 import sys
 from pathlib import Path
+from ai.predict import predict_stock
 
+result = predict_stock(df)
+
+st.metric("AI Score", f"{result['score']:.1f}%")
+st.write(result["recommendation"])
 # Add project root
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
