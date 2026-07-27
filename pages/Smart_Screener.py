@@ -1,7 +1,23 @@
 # pages/Smart_Screener.py
 import sys
 from pathlib import Path
+from scanners.pattern_ai import PatternAI
+from ai.pattern_score import pattern_score
 
+scanner = PatternAI()
+
+patterns = scanner.scan_all(df)
+
+score = pattern_score(df, patterns)
+
+if score >= 70:
+    recommendation = "🔥 نموذج قوي"
+
+elif score >= 50:
+    recommendation = "✅ جيد"
+
+else:
+    recommendation = "⚠ ضعيف"
 # Add project root
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
