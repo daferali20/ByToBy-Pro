@@ -64,6 +64,23 @@ def color_signal(val):
     }
     return colors.get(val, '')
 
+def style_dataframe(df):
+    """تطبيق التنسيق على DataFrame"""
+    # تطبيق التلوين على عمود الإشارة فقط
+    styled = df.style.applymap(
+        color_signal, 
+        subset=pd.IndexSlice[:, ['الإشارة']]
+    )
+    
+    # تنسيق الأعمدة الرقمية
+    styled = styled.format({
+        'السعر الحالي': '${:.2f}',
+        'السعر المستهدف': '${:.2f}',
+        'الثقة': '{:.0f}%'
+    })
+    
+    return styled
+
 def main():
     """الدالة الرئيسية للصفحة"""
     st.title("🤖 توصيات الذكاء الاصطناعي")
@@ -120,8 +137,10 @@ def main():
     # استخدام بيانات تجريبية أو حقيقية
     df_recommendations = generate_sample_data()
     
+    # تطبيق التنسيق على DataFrame
+    styled_df = style_dataframe(df_recommendations)
+    
     # عرض الجدول مع تلوين
-    styled_df = df_recommendations.style.applymap(color_signal, subset=['الإشارة'])
     st.dataframe(styled_df, use_container_width=True, height=350)
     
     # أزرار تحميل
