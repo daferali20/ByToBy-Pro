@@ -53,33 +53,27 @@ def generate_sample_data():
         'الأفق الزمني': ['متوسط', 'طويل', 'متوسط', 'قصير', 'متوسط', 'طويل', 'متوسط', 'طويل']
     })
 
-def color_signal(val):
-    """تلوين خلايا الإشارة"""
+def get_signal_color(signal):
+    """الحصول على لون الإشارة"""
     colors = {
-        'شراء قوي': 'background-color: #00ff00; color: black; font-weight: bold',
-        'شراء': 'background-color: #90ee90; color: black',
-        'احتفاظ': 'background-color: #ffff00; color: black',
-        'بيع': 'background-color: #ff6347; color: white',
-        'بيع قوي': 'background-color: #ff0000; color: white'
+        'شراء قوي': '🟢',
+        'شراء': '✅',
+        'احتفاظ': '🟡',
+        'بيع': '🔴',
+        'بيع قوي': '⛔'
     }
-    return colors.get(val, '')
+    return colors.get(signal, '⚪')
 
-def style_dataframe(df):
-    """تطبيق التنسيق على DataFrame"""
-    # تطبيق التلوين على عمود الإشارة فقط
-    styled = df.style.applymap(
-        color_signal, 
-        subset=pd.IndexSlice[:, ['الإشارة']]
-    )
-    
-    # تنسيق الأعمدة الرقمية
-    styled = styled.format({
-        'السعر الحالي': '${:.2f}',
-        'السعر المستهدف': '${:.2f}',
-        'الثقة': '{:.0f}%'
-    })
-    
-    return styled
+def get_signal_badge(signal):
+    """الحصول على علامة HTML للإشارة"""
+    badges = {
+        'شراء قوي': '<span style="background-color: #00ff00; color: black; padding: 2px 8px; border-radius: 12px; font-weight: bold;">شراء قوي</span>',
+        'شراء': '<span style="background-color: #90ee90; color: black; padding: 2px 8px; border-radius: 12px;">شراء</span>',
+        'احتفاظ': '<span style="background-color: #ffff00; color: black; padding: 2px 8px; border-radius: 12px;">احتفاظ</span>',
+        'بيع': '<span style="background-color: #ff6347; color: white; padding: 2px 8px; border-radius: 12px;">بيع</span>',
+        'بيع قوي': '<span style="background-color: #ff0000; color: white; padding: 2px 8px; border-radius: 12px; font-weight: bold;">بيع قوي</span>'
+    }
+    return badges.get(signal, signal)
 
 def main():
     """الدالة الرئيسية للصفحة"""
@@ -130,18 +124,31 @@ def main():
     st.divider()
     
     # ============================================
-    # 2. قائمة التوصيات
+    # 2. قائمة التوصيات - باستخدام HTML للتلوين
     # ============================================
     st.subheader("📊 قائمة التوصيات المخصصة")
     
     # استخدام بيانات تجريبية أو حقيقية
     df_recommendations = generate_sample_data()
     
-    # تطبيق التنسيق على DataFrame
-    styled_df = style_dataframe(df_recommendations)
+    # إنشاء نسخة مع علامات HTML للتلوين
+    display_df = df_recommendations.copy()
+    display_df['الإشارة'] = display_df['الإشارة'].apply(get_signal_badge)
+    display_df['الثقة'] = display_df['الثقة'].apply(lambda x: f"{x}%")
+    display_df['السعر الحالي'] = display_df['السعر الحالي'].apply(lambda x: f"${x:.2f}")
+    display_df['السعر المستهدف'] = display_df['السعر المستهدف'].apply(lambda x: f"${x:.2f}")
     
-    # عرض الجدول مع تلوين
-    st.dataframe(styled_df, use_container_width=True, height=350)
+    # عرض الجدول مع HTML
+    st.markdown("""
+    <style>
+    .dataframe td {
+        white-space: nowrap;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # عرض الجدول
+    st.write(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
     
     # أزرار تحميل
     col1, col2 = st.columns([1, 4])
