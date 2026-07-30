@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 
-API_KEY = "YOUR_BENZINGA_API_KEY"  # استبدل بمفتاحك
+API_KEY = "bz.LEHKFPWH4EKQTBUMQ5HJ5HW3ZABANSAJ"  # استبدل بمفتاحك
 url = "https://api.benzinga.com/api/v2.1/calendar/earnings"
 
 headers = {"accept": "application/json"}
