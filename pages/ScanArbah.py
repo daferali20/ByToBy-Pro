@@ -1,5 +1,3 @@
-#API_KEY = "bz.LEHKFPWH4EKQTBUMQ5HJ5HW3ZABANSAJ"  # استبدل بمفتاحك
-#url = "https://api.benzinga.com/api/v2.1/calendar/earnings"
 import streamlit as st
 import requests
 import pandas as pd
